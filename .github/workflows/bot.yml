@@ -37,10 +37,10 @@ jobs:
         run: python -m playwright install chromium --with-deps
 
       - name: Run Mirror Bot
-        env:
-          SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY }}
-          BINANCE_COOKIES: ${{ secrets.BINANCE_COOKIES }}
-        run: python bot/main.py
+  env:
+    SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY }}
+    BINANCE_COOKIES: ${{ secrets.BINANCE_COOKIES }}
+  run: python bot/main.py
 
       - name: Save state
         if: always()
