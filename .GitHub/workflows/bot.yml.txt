@@ -2,44 +2,72 @@ name: Binance Square Mirror Bot
 
 on:
   schedule:
-    - cron: "*/30 * * * *"  # Every 30 minutes
-  workflow_dispatch:         # Manual trigger from GitHub UI
+    # Runs every 30 minutes
+    - cron: "*/30 * * * *"
+  workflow_dispatch: # Allow manual trigger from GitHub UI
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
+      # 1. Checkout the repo (so we can read/write last_post_id.txt)
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      # 2. Set up Python
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      # 3. Cache pip packages
       - name: Cache pip
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      # 4. Install dependencies
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
 
+      # 5. Install Playwright browsers
+      - name: Install Playwright + Chromium
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
+
+      # 6. Run the bot
       - name: Run Mirror Bot
         env:
-          SQUARE_API_KEY: ${{ secrets.SQUARE_API_KEY }}
-        run: python bot/main.py
+          BINANCE_EMAIL: ${{ secrets.BINANCE_EMAIL }}
+          BINANCE_PASSWORD: ${{ secrets.BINANCE_PASSWORD }}
+          BINANCE_TOTP_SECRET: ${{ secrets.BINANCE_TOTP_SECRET }}
+        run: |
+          python bot/main.py
 
+      # 7. Commit updated last_post_id.txt back to repo
       - name: Save last post ID
         if: always()
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add last_post_id.txt working_api_config.json 2>/dev/null || true
-          git diff --staged --quiet || git commit -m "chore: update state [skip ci]"
+          git add last_post_id.txt || true
+          git diff --staged --quiet || git commit -m "chore: update last post ID [skip ci]"
           git push || true
+
+      # 8. Upload debug screenshots if bot failed
+      - name: Upload debug screenshots (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: "*.png"
+          if-no-files-found: ignore
