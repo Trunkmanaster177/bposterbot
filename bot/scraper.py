@@ -24,20 +24,23 @@ def get_latest_post_for_user(username):
         )
         page = context.new_page()
 
+        # Only capture API calls that contain the username — ignore generic feeds
         captured_posts = []
 
         def handle_response(response):
-            url = response.url
-            if "feed" in url or "square" in url:
-                try:
-                    if "json" in response.headers.get("content-type", ""):
-                        data = response.json()
-                        posts = _find_posts_in_json(data)
-                        if posts:
-                            print(f"[scraper] 🎯 Intercepted: {url.split('?')[0][-50:]}")
-                            captured_posts.extend(posts)
-                except Exception:
-                    pass
+            url = response.url.lower()
+            # Must contain username to be user-specific
+            if username.lower() not in url:
+                return
+            try:
+                if "json" in response.headers.get("content-type", ""):
+                    data = response.json()
+                    posts = _find_posts_in_json(data)
+                    if posts:
+                        print(f"[scraper] 🎯 User-specific API: {response.url.split('?')[0][-60:]}")
+                        captured_posts.extend(posts)
+            except Exception:
+                pass
 
         page.on("response", handle_response)
 
@@ -45,6 +48,7 @@ def get_latest_post_for_user(username):
             page.goto(profile_url, wait_until="domcontentloaded", timeout=30000)
             page.wait_for_timeout(8000)
 
+            # Strategy 1: user-specific intercepted API
             if captured_posts:
                 p0 = captured_posts[0]
                 post_id = str(p0.get("id") or p0.get("postId") or "")
@@ -52,11 +56,12 @@ def get_latest_post_for_user(username):
                     p0.get("content") or p0.get("body") or p0.get("text") or ""
                 ).strip()
                 if post_id:
-                    print(f"[scraper] ✅ Got post {post_id} from {username} via intercepted API")
+                    print(f"[scraper] ✅ Got post {post_id} from {username} via user API")
                     browser.close()
                     return {"id": post_id, "content": content, "username": username}
 
-            # Fallback: extract post IDs from rendered HTML
+            # Strategy 2: extract post IDs from rendered DOM
+            # These will be profile-specific since we're on the profile page
             print(f"[scraper] Parsing DOM for {username}...")
             html = page.content()
             post_ids = re.findall(r"/en/square/post/(\d+)", html)
@@ -64,45 +69,39 @@ def get_latest_post_for_user(username):
             if post_ids:
                 post_ids = sorted(set(post_ids), key=lambda x: int(x), reverse=True)
                 latest_id = post_ids[0]
-                print(f"[scraper] Found post IDs: {post_ids[:3]}")
+                print(f"[scraper] Found post IDs on {username} profile: {post_ids[:5]}")
 
-                post_url = f"https://www.binance.com/en/square/post/{latest_id}"
-                page.goto(post_url, wait_until="domcontentloaded", timeout=20000)
-                page.wait_for_timeout(5000)
-
-                post_html = page.content()
-                content = ""
-
-                og = re.search(r'property="og:description"\s+content="([^"]+)"', post_html)
-                if not og:
-                    og = re.search(r'content="([^"]+)"\s+property="og:description"', post_html)
-                if og:
-                    content = og.group(1).strip()
-
-                if not content:
-                    nd = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', post_html, re.DOTALL)
-                    if nd:
-                        try:
-                            texts = re.findall(r'"content"\s*:\s*"((?:[^"\\]|\\.){30,})"', nd.group(1))
-                            if texts:
-                                content = max(texts, key=len)
-                        except Exception:
-                            pass
-
+                # Fetch content from the individual post page
+                content = fetch_post_content(page, latest_id)
                 browser.close()
                 return {"id": latest_id, "content": content, "username": username}
 
+            # Strategy 3: Try direct API call with username in URL
+            print(f"[scraper] Trying direct profile API for {username}...")
+            direct_posts = try_direct_api(page, username)
+            if direct_posts:
+                p0 = direct_posts[0]
+                post_id = str(p0.get("id") or p0.get("postId") or "")
+                content = re.sub(r"<[^>]+>", "",
+                    p0.get("content") or p0.get("body") or p0.get("text") or ""
+                ).strip()
+                if post_id:
+                    browser.close()
+                    return {"id": post_id, "content": content, "username": username}
+
             print(f"[scraper] ❌ No posts found for {username}")
+            page.screenshot(path=f"debug_{username}.png")
             browser.close()
             return None
 
-        except PWTimeout as e:
-            print(f"[scraper] Timeout for {username}: {e}")
+        except PWTimeout:
+            print(f"[scraper] Timeout for {username}, trying DOM fallback...")
             try:
                 html = page.content()
                 post_ids = re.findall(r"/en/square/post/(\d+)", html)
                 if post_ids:
                     latest_id = sorted(post_ids, key=lambda x: int(x), reverse=True)[0]
+                    print(f"[scraper] Got {latest_id} from partial load")
                     browser.close()
                     return {"id": latest_id, "content": "", "username": username}
             except Exception:
@@ -112,8 +111,71 @@ def get_latest_post_for_user(username):
 
         except Exception as e:
             print(f"[scraper] Error for {username}: {e}")
+            try:
+                page.screenshot(path=f"debug_{username}.png")
+            except Exception:
+                pass
             browser.close()
             return None
+
+
+def try_direct_api(page, username):
+    """Try calling profile API endpoints directly from the browser context (bypasses CORS/auth)."""
+    endpoints = [
+        f"https://www.binance.com/bapi/feed/v1/friendly/feed/profile/posts?username={username}&pageSize=5&pageIndex=1",
+        f"https://www.binance.com/bapi/feed/v1/friendly/square/profile/post/list?username={username}&pageSize=5",
+        f"https://www.binance.com/bapi/composite/v4/friendly/pgc/feed/profile/list?username={username}&pageSize=5",
+    ]
+    for url in endpoints:
+        try:
+            result = page.evaluate(f"""
+                async () => {{
+                    const r = await fetch('{url}', {{
+                        headers: {{
+                            'Accept': 'application/json',
+                            'Referer': 'https://www.binance.com/en/square/profile/{username}'
+                        }}
+                    }});
+                    return await r.json();
+                }}
+            """)
+            posts = _find_posts_in_json(result)
+            if posts:
+                print(f"[scraper] ✅ Direct API hit: {url.split('?')[0][-50:]}")
+                return posts
+        except Exception:
+            pass
+    return []
+
+
+def fetch_post_content(page, post_id):
+    """Navigate to post page and extract content."""
+    try:
+        post_url = f"https://www.binance.com/en/square/post/{post_id}"
+        page.goto(post_url, wait_until="domcontentloaded", timeout=20000)
+        page.wait_for_timeout(4000)
+        post_html = page.content()
+
+        # og:description
+        og = re.search(r'property="og:description"\s+content="([^"]+)"', post_html)
+        if not og:
+            og = re.search(r'content="([^"]+)"\s+property="og:description"', post_html)
+        if og:
+            content = og.group(1).strip()
+            print(f"[scraper] Got content ({len(content)} chars) from og:description")
+            return content
+
+        # __NEXT_DATA__
+        nd = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', post_html, re.DOTALL)
+        if nd:
+            texts = re.findall(r'"content"\s*:\s*"((?:[^"\\]|\\.){30,})"', nd.group(1))
+            if texts:
+                content = max(texts, key=len)
+                print(f"[scraper] Got content ({len(content)} chars) from __NEXT_DATA__")
+                return content
+    except Exception as e:
+        print(f"[scraper] Content fetch error: {e}")
+    return ""
 
 
 def get_all_new_posts():
@@ -142,7 +204,6 @@ def get_all_new_posts():
 
 
 def load_all_last_ids():
-    """Load last post IDs for all creators from file."""
     if not os.path.exists(LAST_POST_FILE):
         return {}
     try:
@@ -153,7 +214,6 @@ def load_all_last_ids():
 
 
 def save_last_post_id(username, post_id):
-    """Save last post ID for a specific creator."""
     ids = load_all_last_ids()
     ids[username] = str(post_id)
     with open(LAST_POST_FILE, "w") as f:
