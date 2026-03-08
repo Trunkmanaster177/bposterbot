@@ -1,174 +1,173 @@
 import os
 import json
-import requests
-import time
 
-# ── API Key from Binance Square ──────────────────────────────────────────────
 SQUARE_API_KEY = os.environ.get("SQUARE_API_KEY", "")
 
-# ── All known/likely Binance Square POST endpoints ───────────────────────────
-ENDPOINTS = [
+# The exact endpoint discovered from the scraper's intercepted calls
+# We'll call it from inside the browser context (with cookies) via page.evaluate()
+POST_ENDPOINTS = [
     "https://www.binance.com/bapi/feed/v1/friendly/feed/post/create",
     "https://www.binance.com/bapi/feed/v1/private/feed/post/create",
+    "https://www.binance.com/bapi/composite/v1/friendly/pgc/feed/post/create",
     "https://www.binance.com/bapi/feed/v2/friendly/feed/post/create",
-    "https://www.binance.com/bapi/feed/v2/private/feed/post/create",
-    "https://www.binance.com/bapi/square/v1/post/create",
-    "https://www.binance.com/bapi/square/v1/private/post/create",
-    "https://www.binance.com/bapi/feed/v1/friendly/feed/square/post",
-    "https://www.binance.com/x-api/v1/square/post/create",
-    "https://api.binance.com/sapi/v1/square/post/create",
 ]
 
-BASE_HEADERS = {
-    "Content-Type": "application/json",
-    "User-Agent": "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36",
-    "Accept": "application/json",
-    "Origin": "https://www.binance.com",
-    "Referer": "https://www.binance.com/en/square",
-}
-
-# Once working config is discovered, it gets saved here
-WORKING_CONFIG_FILE = "working_api_config.json"
+SQUARE_URL = "https://www.binance.com/en/square"
 
 
-def build_headers_variants(api_key):
-    """All possible header formats the new Square API might use."""
-    return [
-        {**BASE_HEADERS, "apiKey": api_key},
-        {**BASE_HEADERS, "X-MBX-APIKEY": api_key},
-        {**BASE_HEADERS, "Authorization": f"Bearer {api_key}"},
-        {**BASE_HEADERS, "Authorization": api_key},
-        {**BASE_HEADERS, "api-key": api_key},
-        {**BASE_HEADERS, "square-api-key": api_key},
-        {**BASE_HEADERS, "x-api-key": api_key},
-        {**BASE_HEADERS, "BNC-Square-Api-Key": api_key},
-    ]
-
-
-def build_body_variants(content):
-    """All possible request body formats."""
-    ts = int(time.time() * 1000)
-    return [
-        {"content": content, "type": 1},
-        {"content": content, "postType": 1},
-        {"body": content, "type": 1},
-        {"text": content, "type": 1},
-        {"content": content, "type": 1, "timestamp": ts},
-        {"content": content, "type": "POST"},
-        {"content": content},
-    ]
-
-
-def load_working_config():
-    """Load previously discovered working endpoint config."""
-    if os.path.exists(WORKING_CONFIG_FILE):
-        with open(WORKING_CONFIG_FILE) as f:
-            return json.load(f)
-    return None
-
-
-def save_working_config(url, header_key, body_keys):
-    """Save the working config for optimized future runs."""
-    config = {"endpoint": url, "header_key": header_key, "body_keys": body_keys}
-    with open(WORKING_CONFIG_FILE, "w") as f:
-        json.dump(config, f, indent=2)
-    print(f"[poster] ✅ Saved working config → {WORKING_CONFIG_FILE}")
-
-
-def is_success(status_code, response_text):
-    """Check if API response indicates success."""
-    if status_code not in [200, 201]:
-        return False
-    try:
-        data = json.loads(response_text)
-        code = str(data.get("code", data.get("status", "")))
-        return (
-            code in ["000000", "0", "200", "SUCCESS", "success"]
-            or data.get("success") is True
-            or data.get("data") is not None
-        )
-    except Exception:
-        return status_code in [200, 201]
-
-
-def post_to_square(content):
+def post_to_square(content: str) -> bool:
     """
-    Post content to Binance Square using the API key.
-    First tries previously working config, then auto-discovers.
-    Returns True on success.
+    Post content to Binance Square using Playwright browser.
+    Calls the API from inside the browser context so Binance cookies/auth are included.
     """
     if not content.strip():
         print("[poster] Empty content, skipping.")
         return False
 
-    api_key = SQUARE_API_KEY
-    if not api_key:
-        print("[poster] ERROR: SQUARE_API_KEY not set in environment.")
-        return False
+    from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 
-    print(f"[poster] Using Binance Square API key: {api_key[:8]}****")
+    print(f"[poster] Launching browser to post ({len(content)} chars)...")
 
-    # ── Try previously saved working config first ────────────────────────────
-    config = load_working_config()
-    if config:
-        print(f"[poster] Using saved config: {config['endpoint']}")
-        headers = {**BASE_HEADERS, config["header_key"]: api_key}
-        body = {k: (content if k in ["content", "body", "text"] else 1)
-                for k in config["body_keys"]}
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+        )
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            viewport={"width": 1280, "height": 800},
+            locale="en-US",
+        )
+        page = context.new_page()
+
         try:
-            resp = requests.post(config["endpoint"], json=body, headers=headers, timeout=12)
-            print(f"[poster] [{resp.status_code}] {resp.text[:200]}")
-            if is_success(resp.status_code, resp.text):
-                print("[poster] ✅ Post published!")
-                return True
-            else:
-                print("[poster] Saved config failed, running discovery...")
-        except Exception as e:
-            print(f"[poster] Saved config error: {e}, running discovery...")
+            # Load Binance Square so browser has all cookies/session
+            print("[poster] Loading Binance Square to get session...")
+            page.goto(SQUARE_URL, wait_until="domcontentloaded", timeout=30000)
+            page.wait_for_timeout(5000)
 
-    # ── Auto-discovery: try all endpoint + header + body combos ─────────────
-    print("[poster] Running API endpoint discovery...")
-    promising = []
+            # Try each endpoint from inside the browser (cookies included automatically)
+            for endpoint in POST_ENDPOINTS:
+                print(f"[poster] Trying: {endpoint.split('/')[-1]}...")
 
-    for url in ENDPOINTS:
-        for headers in build_headers_variants(api_key):
-            for body in build_body_variants(content):
-                try:
-                    resp = requests.post(url, json=body, headers=headers, timeout=10)
+                body_variants = [
+                    {"content": content, "type": 1},
+                    {"content": content, "postType": 1},
+                    {"content": content, "type": 1, "apiKey": SQUARE_API_KEY},
+                    {"content": content, "type": 1, "api_key": SQUARE_API_KEY},
+                ]
 
-                    if resp.status_code in [404, 405, 301, 302]:
+                for body in body_variants:
+                    try:
+                        result = page.evaluate(f"""
+                            async () => {{
+                                const resp = await fetch('{endpoint}', {{
+                                    method: 'POST',
+                                    headers: {{
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json',
+                                        'apiKey': '{SQUARE_API_KEY}',
+                                        'x-api-key': '{SQUARE_API_KEY}',
+                                        'Referer': 'https://www.binance.com/en/square',
+                                    }},
+                                    body: JSON.stringify({json.dumps(body)})
+                                }});
+                                const text = await resp.text();
+                                return {{ status: resp.status, body: text }};
+                            }}
+                        """)
+
+                        status = result.get("status", 0)
+                        body_resp = result.get("body", "")
+                        print(f"[poster] [{status}] {body_resp[:150]}")
+
+                        if status in [200, 201]:
+                            try:
+                                data = json.loads(body_resp)
+                                code = str(data.get("code", ""))
+                                if code in ["000000", "0", "200"] or data.get("success") or data.get("data"):
+                                    print(f"[poster] ✅ Post published successfully!")
+                                    browser.close()
+                                    return True
+                            except Exception:
+                                # 200 with non-JSON is still likely success
+                                print(f"[poster] ✅ Got 200 response, assuming success!")
+                                browser.close()
+                                return True
+
+                        # Save any non-403 response for debugging
+                        if status not in [403, 404, 405]:
+                            print(f"[poster] ⭐ Promising response at {endpoint}")
+
+                    except Exception as e:
+                        print(f"[poster] Fetch error: {e}")
                         continue
 
-                    print(f"  [{resp.status_code}] {url} | {resp.text[:100]}")
+            # Last resort: try UI automation to click "Create Post"
+            print("[poster] API attempts failed, trying UI automation...")
+            success = try_ui_post(page, content)
+            browser.close()
+            return success
 
-                    if is_success(resp.status_code, resp.text):
-                        # Find which extra header key was added
-                        extra_keys = [k for k in headers if k not in BASE_HEADERS]
-                        header_key = extra_keys[0] if extra_keys else "apiKey"
-                        save_working_config(url, header_key, list(body.keys()))
-                        print(f"\n[poster] ✅ SUCCESS! Post published via {url}")
-                        return True
+        except Exception as e:
+            print(f"[poster] Error: {e}")
+            browser.close()
+            return False
 
-                    promising.append({
-                        "status": resp.status_code,
-                        "url": url,
-                        "response": resp.text[:200]
-                    })
 
-                except requests.exceptions.RequestException:
-                    pass
+def try_ui_post(page, content: str) -> bool:
+    """Click the Create Post button in the UI as last resort."""
+    from playwright.sync_api import TimeoutError as PWTimeout
+    try:
+        print("[poster] Looking for post creation input...")
 
-    # ── Report results ───────────────────────────────────────────────────────
-    if promising:
-        print(f"\n[poster] ⚠️ Got {len(promising)} non-404 responses but no success.")
-        print("[poster] Best response:")
-        print(json.dumps(promising[0], indent=2))
-        print("\n[poster] ACTION NEEDED: Check response above.")
-        print("[poster] If you see the correct endpoint in your app's network traffic,")
-        print("[poster] create working_api_config.json manually with the endpoint details.")
-    else:
-        print("\n[poster] ❌ All endpoints returned 404/405.")
-        print("[poster] The exact API endpoint is not yet public.")
-        print("[poster] Please intercept Binance app traffic to find it (see README).")
+        selectors = [
+            '[placeholder*="Share" i]',
+            '[placeholder*="What" i]',
+            '[placeholder*="post" i]',
+            'div[contenteditable="true"]',
+            '[class*="create" i] textarea',
+            '[class*="editor" i]',
+            'textarea',
+        ]
 
-    return False
+        input_el = None
+        for sel in selectors:
+            try:
+                el = page.locator(sel).first
+                el.wait_for(state="visible", timeout=3000)
+                input_el = el
+                print(f"[poster] Found input: {sel}")
+                break
+            except PWTimeout:
+                continue
+
+        if not input_el:
+            print("[poster] ❌ Could not find post input via UI.")
+            page.screenshot(path="poster_debug.png")
+            return False
+
+        input_el.click()
+        page.wait_for_timeout(500)
+        input_el.fill(content)
+        page.wait_for_timeout(1000)
+
+        # Find submit button
+        for sel in ['button:has-text("Post")', 'button:has-text("Publish")', 'button:has-text("Submit")', 'button[type="submit"]']:
+            try:
+                btn = page.locator(sel).last
+                btn.wait_for(state="visible", timeout=3000)
+                btn.click()
+                print(f"[poster] ✅ Clicked submit button!")
+                page.wait_for_timeout(3000)
+                return True
+            except PWTimeout:
+                continue
+
+        print("[poster] ❌ Could not find submit button.")
+        page.screenshot(path="poster_debug.png")
+        return False
+
+    except Exception as e:
+        print(f"[poster] UI post error: {e}")
+        return False
