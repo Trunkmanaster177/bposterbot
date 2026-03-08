@@ -49,11 +49,11 @@ jobs:
           git add last_post_id.txt working_api_config.json 2>/dev/null || true
           git diff --staged --quiet || git commit -m "chore: update state [skip ci]"
           git push || true
-
-      - name: Upload debug screenshots on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-screenshots
-          path: "*.png"
-          if-no-files-found: ignore
+          
+      - name: Upload screenshots
+  if: always()   # ← change from "failure" to "always"
+  uses: actions/upload-artifact@v4
+  with:
+    name: debug-screenshots
+    path: "*.png"
+    if-no-files-found: ignore
