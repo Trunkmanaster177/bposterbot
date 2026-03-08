@@ -1,96 +1,130 @@
-import requests
-import json
 import os
 import re
-from bs4 import BeautifulSoup
-import xml.etree.ElementTree as ET
+import json
 
 TARGET_USERNAME = "ict_bull"
 LAST_POST_FILE = "last_post_id.txt"
-
-SESSION = requests.Session()
-SESSION.headers.update({
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Referer": "https://www.binance.com/en/square",
-    "Origin": "https://www.binance.com",
-})
+PROFILE_URL = f"https://www.binance.com/en/square/profile/{TARGET_USERNAME}"
 
 
-# ── Strategy 1: Binance Square sitemap XML ───────────────────────────────────
-def try_sitemap():
-    """
-    Binance exposes a sitemap with all post IDs.
-    We grab page 1 (newest posts) and find ict_bull's posts.
-    """
-    for page in range(1, 4):
-        url = f"https://www.binance.com/en/square/sitemap/post/{page}"
+def get_latest_post():
+    """Use Playwright to scrape ict_bull's latest post (JS-rendered page)."""
+    from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
+
+    print("[scraper] Launching headless browser...")
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+        )
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            viewport={"width": 1280, "height": 800},
+            locale="en-US",
+        )
+        page = context.new_page()
+
+        # Intercept API responses to grab post data directly
+        captured_posts = []
+
+        def handle_response(response):
+            url = response.url
+            if "feed" in url and ("profile" in url or "posts" in url or "feeds" in url):
+                try:
+                    data = response.json()
+                    posts = _find_posts_in_json(data)
+                    if posts:
+                        print(f"[scraper] 🎯 Intercepted API: {url.split('?')[0][-60:]}")
+                        captured_posts.extend(posts)
+                except Exception:
+                    pass
+
+        page.on("response", handle_response)
+
         try:
-            resp = SESSION.get(url, timeout=15)
-            print(f"[scraper] Sitemap page {page} → {resp.status_code}")
-            if resp.status_code != 200:
-                continue
+            print(f"[scraper] Loading profile: {PROFILE_URL}")
+            page.goto(PROFILE_URL, wait_until="networkidle", timeout=30000)
 
-            # Try XML parse
+            # Wait for posts to render
             try:
-                root = ET.fromstring(resp.content)
-                ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-                urls = [loc.text for loc in root.findall(".//sm:loc", ns)]
-                if urls:
-                    ids = [re.search(r"/post/(\d+)", u).group(1) for u in urls if re.search(r"/post/(\d+)", u)]
-                    if ids:
-                        print(f"[scraper] Found {len(ids)} post IDs in sitemap")
-                        return sorted(ids, key=lambda x: int(x), reverse=True)
-            except ET.ParseError:
-                pass
+                page.wait_for_selector(
+                    '[class*="post"], [class*="Post"], [class*="feed"], article',
+                    timeout=15000
+                )
+            except PWTimeout:
+                print("[scraper] Selector timeout — trying to read DOM anyway...")
 
-            # Fallback: regex on raw text
-            ids = re.findall(r"/en/square/post/(\d+)", resp.text)
-            if ids:
-                print(f"[scraper] Found {len(ids)} post IDs via regex")
-                return sorted(set(ids), key=lambda x: int(x), reverse=True)
+            # If we captured API responses, use those
+            if captured_posts:
+                p0 = captured_posts[0]
+                post_id = str(p0.get("id") or p0.get("postId") or "")
+                content = re.sub(r"<[^>]+>", "",
+                    p0.get("content") or p0.get("body") or p0.get("text") or ""
+                ).strip()
+                print(f"[scraper] ✅ Got post {post_id} via intercepted API")
+                browser.close()
+                return {"id": post_id, "content": content}
+
+            # Fallback: parse rendered DOM
+            print("[scraper] Parsing rendered DOM...")
+            html = page.content()
+
+            # Extract post IDs from rendered HTML
+            post_ids = re.findall(r"/en/square/post/(\d+)", html)
+            if post_ids:
+                post_ids = sorted(set(post_ids), key=lambda x: int(x), reverse=True)
+                latest_id = post_ids[0]
+                print(f"[scraper] Found post IDs in DOM: {post_ids[:3]}")
+
+                # Try to get content from the page DOM
+                content = _extract_content_from_dom(page, latest_id)
+
+                # If no DOM content, navigate to the post page
+                if not content:
+                    post_url = f"https://www.binance.com/en/square/post/{latest_id}"
+                    print(f"[scraper] Loading post page: {post_url}")
+                    page.goto(post_url, wait_until="networkidle", timeout=20000)
+                    html2 = page.content()
+                    # og:description
+                    og = re.search(r'<meta[^>]+property="og:description"[^>]+content="([^"]+)"', html2)
+                    if og:
+                        content = og.group(1).strip()
+                    if not content:
+                        # __NEXT_DATA__
+                        nd = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html2, re.DOTALL)
+                        if nd:
+                            try:
+                                page_json = json.loads(nd.group(1))
+                                texts = re.findall(r'"content"\s*:\s*"((?:[^"\\]|\\.){30,})"', json.dumps(page_json))
+                                if texts:
+                                    content = max(texts, key=len)
+                            except Exception:
+                                pass
+
+                browser.close()
+                return {"id": latest_id, "content": content or ""}
+
+            print("[scraper] ❌ No post IDs found in rendered DOM.")
+            browser.close()
+            return None
 
         except Exception as e:
-            print(f"[scraper] Sitemap page {page} error: {e}")
-    return []
-
-
-# ── Strategy 2: Binance Square internal GraphQL / REST ───────────────────────
-def try_internal_api():
-    """Try Binance's internal bapi endpoints with various auth patterns."""
-    endpoints = [
-        f"https://www.binance.com/bapi/feed/v1/friendly/feed/profile/timeline?username={TARGET_USERNAME}&pageSize=10",
-        f"https://www.binance.com/bapi/feed/v1/friendly/square/profile/post/list?username={TARGET_USERNAME}&pageSize=10",
-        f"https://www.binance.com/bapi/asset/v2/public/square/feed/list?username={TARGET_USERNAME}",
-        f"https://www.binance.com/bapi/feed/v1/public/feed/profile/posts?username={TARGET_USERNAME}&pageSize=5",
-        f"https://www.binance.com/bapi/feed/v1/friendly/feed/user/posts?username={TARGET_USERNAME}&pageSize=5&pageIndex=1",
-        f"https://www.binance.com/bapi/composite/v1/public/square/profile/feed?username={TARGET_USERNAME}",
-    ]
-    for url in endpoints:
-        try:
-            resp = SESSION.get(url, timeout=12)
-            print(f"[scraper] {url.split('?')[0].split('/')[-3:]} → {resp.status_code}")
-            if resp.status_code == 200:
-                data = resp.json()
-                # Walk the response tree looking for post arrays
-                posts = _find_posts_in_json(data)
-                if posts:
-                    print(f"[scraper] ✅ Found {len(posts)} posts via internal API")
-                    return posts
-        except Exception:
-            pass
-    return []
+            print(f"[scraper] Browser error: {e}")
+            try:
+                page.screenshot(path="scraper_debug.png")
+                print("[scraper] Screenshot saved: scraper_debug.png")
+            except Exception:
+                pass
+            browser.close()
+            return None
 
 
 def _find_posts_in_json(data, depth=0):
-    """Recursively search JSON for a list of post objects."""
-    if depth > 5:
+    if depth > 6:
         return []
     if isinstance(data, list) and len(data) > 0:
-        first = data[0]
-        if isinstance(first, dict) and any(k in first for k in ["id", "postId", "content", "body"]):
+        if isinstance(data[0], dict) and any(k in data[0] for k in ["id", "postId", "content", "body"]):
             return data
     if isinstance(data, dict):
         for v in data.values():
@@ -100,98 +134,27 @@ def _find_posts_in_json(data, depth=0):
     return []
 
 
-# ── Strategy 3: Fetch individual post page content ───────────────────────────
-def fetch_post_content(post_id):
-    """Fetch content from a post's og:description meta tag."""
-    url = f"https://www.binance.com/en/square/post/{post_id}"
+def _extract_content_from_dom(page, post_id):
+    """Try to extract post text from rendered DOM near the post link."""
     try:
-        resp = SESSION.get(url, timeout=15)
-        if resp.status_code == 200:
-            soup = BeautifulSoup(resp.text, "html.parser")
-            # og:description has the post text
-            for attr in [("property", "og:description"), ("name", "description"), ("property", "og:title")]:
-                tag = soup.find("meta", {attr[0]: attr[1]})
-                if tag and tag.get("content", "").strip():
-                    return tag["content"].strip()
-            # __NEXT_DATA__ JSON
-            nd = soup.find("script", {"id": "__NEXT_DATA__"})
-            if nd:
-                try:
-                    page_json = json.loads(nd.string)
-                    text = json.dumps(page_json)
-                    # Find content fields
-                    matches = re.findall(r'"content"\s*:\s*"((?:[^"\\]|\\.){20,})"', text)
-                    if matches:
-                        return max(matches, key=len).encode().decode("unicode_escape")
-                except Exception:
-                    pass
-    except Exception as e:
-        print(f"[scraper] Post content fetch error: {e}")
+        # Find elements containing the post link
+        el = page.locator(f'a[href*="/square/post/{post_id}"]').first
+        if el:
+            parent = page.evaluate("""(el) => {
+                let node = el;
+                for (let i = 0; i < 5; i++) {
+                    node = node.parentElement;
+                    if (node && node.innerText && node.innerText.length > 50) {
+                        return node.innerText;
+                    }
+                }
+                return '';
+            }""", el.element_handle())
+            if parent and len(parent) > 30:
+                return parent.strip()
+    except Exception:
+        pass
     return ""
-
-
-# ── Strategy 4: RSS feed ─────────────────────────────────────────────────────
-def try_rss():
-    """Some Binance Square profiles expose RSS."""
-    urls = [
-        f"https://www.binance.com/en/square/profile/{TARGET_USERNAME}/rss",
-        f"https://www.binance.com/en/square/rss/{TARGET_USERNAME}",
-        f"https://www.binance.com/bapi/feed/v1/public/rss/{TARGET_USERNAME}",
-    ]
-    for url in urls:
-        try:
-            resp = SESSION.get(url, timeout=10)
-            print(f"[scraper] RSS {url} → {resp.status_code}")
-            if resp.status_code == 200 and "<item>" in resp.text:
-                root = ET.fromstring(resp.content)
-                items = root.findall(".//item")
-                if items:
-                    first = items[0]
-                    title = first.findtext("title", "")
-                    desc = first.findtext("description", "")
-                    link = first.findtext("link", "")
-                    post_id = re.search(r"/post/(\d+)", link)
-                    pid = post_id.group(1) if post_id else "rss_0"
-                    content = desc or title
-                    content = re.sub(r"<[^>]+>", "", content).strip()
-                    return {"id": pid, "content": content}
-        except Exception:
-            pass
-    return None
-
-
-# ── Main entry point ─────────────────────────────────────────────────────────
-def get_latest_post():
-    """Try all strategies to get the latest post from ict_bull."""
-
-    # Try RSS first (cleanest)
-    print("[scraper] Strategy 1: RSS feed...")
-    rss = try_rss()
-    if rss:
-        print(f"[scraper] ✅ Got post via RSS: {rss['id']}")
-        return rss
-
-    # Try internal API
-    print("[scraper] Strategy 2: Internal API endpoints...")
-    posts = try_internal_api()
-    if posts:
-        p = posts[0]
-        pid = str(p.get("id") or p.get("postId") or "")
-        content = re.sub(r"<[^>]+>", "", p.get("content") or p.get("body") or p.get("text") or "").strip()
-        if pid:
-            return {"id": pid, "content": content}
-
-    # Try sitemap to get post IDs, then fetch content
-    print("[scraper] Strategy 3: Sitemap + post content...")
-    post_ids = try_sitemap()
-    if post_ids:
-        latest_id = post_ids[0]
-        print(f"[scraper] Latest sitemap post ID: {latest_id}, fetching content...")
-        content = fetch_post_content(latest_id)
-        return {"id": latest_id, "content": content}
-
-    print("[scraper] ❌ All strategies exhausted.")
-    return None
 
 
 # ── State helpers ─────────────────────────────────────────────────────────────
@@ -218,7 +181,7 @@ def is_new_post(post):
         save_last_post_id(current_id)
         return False
     if current_id != last_id:
-        print(f"[scraper] 🆕 New post detected! {current_id} (was: {last_id})")
+        print(f"[scraper] 🆕 New post! {current_id} (was: {last_id})")
         return True
     print(f"[scraper] No new posts. Current: {current_id}")
     return False
