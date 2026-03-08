@@ -3,7 +3,7 @@ import re
 import json
 
 TARGET_USERNAMES = ["ict_bull", "Raa_Fi"]
-LAST_POST_FILE = "last_post_id.txt"
+LAST_POST_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "last_post_id.txt")
 BINANCE_COOKIES = os.environ.get("BINANCE_COOKIES", "")
 
 
@@ -90,9 +90,7 @@ def get_latest_post_for_user(username):
             if intercepted_posts:
                 p0 = intercepted_posts[0]
                 post_id = str(p0.get("id") or p0.get("postId") or "")
-                content = re.sub(r"<[^>]+>", "",
-                    p0.get("content") or p0.get("body") or p0.get("text") or ""
-                ).strip()
+                content = extract_plain_text(p0.get("content") or p0.get("body") or p0.get("text") or "")
                 images = _extract_images(p0)
                 if post_id:
                     print(f"[scraper] ✅ {username} → post {post_id} | {len(content)} chars | {len(images)} imgs")
@@ -132,9 +130,7 @@ def get_latest_post_for_user(username):
                         if found:
                             p0 = found[0]
                             post_id = str(p0.get("id") or p0.get("postId") or "")
-                            content = re.sub(r"<[^>]+>", "",
-                                p0.get("content") or p0.get("body") or p0.get("text") or ""
-                            ).strip()
+                            content = extract_plain_text(p0.get("content") or p0.get("body") or p0.get("text") or "")
                             images = _extract_images(p0)
                             if post_id:
                                 print(f"[scraper] ✅ Got {post_id} via API")
@@ -283,3 +279,62 @@ def _find_posts_in_json(data, depth=0):
             if result:
                 return result
     return []
+
+
+def extract_plain_text(raw_content):
+    """
+    Extract plain text from Binance Square rich text JSON format.
+    Handles both plain strings and the JSON rich text format.
+    """
+    if not raw_content:
+        return ""
+
+    # If it doesn't look like JSON, return as-is (already plain text)
+    stripped = raw_content.strip()
+    if not stripped.startswith("{") and not stripped.startswith("["):
+        # Strip HTML tags if any
+        return re.sub(r"<[^>]+>", "", stripped).strip()
+
+    # Parse the rich text JSON
+    try:
+        data = json.loads(stripped)
+
+        texts = []
+
+        def walk(node):
+            if isinstance(node, str):
+                texts.append(node)
+                return
+            if isinstance(node, list):
+                for item in node:
+                    walk(item)
+                return
+            if isinstance(node, dict):
+                # Direct text content fields
+                for key in ["content", "text", "value"]:
+                    val = node.get(key)
+                    if isinstance(val, str) and val.strip():
+                        texts.append(val.strip())
+                    elif isinstance(val, (list, dict)):
+                        walk(val)
+                # Walk all other values too
+                for key, val in node.items():
+                    if key not in ["content", "text", "value"] and isinstance(val, (list, dict)):
+                        walk(val)
+
+        walk(data)
+
+        # Deduplicate while preserving order
+        seen = set()
+        unique = []
+        for t in texts:
+            if t not in seen and len(t) > 1:
+                seen.add(t)
+                unique.append(t)
+
+        result = "\n".join(unique).strip()
+        return result if result else re.sub(r"<[^>]+>", "", stripped).strip()
+
+    except (json.JSONDecodeError, Exception):
+        # Not valid JSON — strip HTML and return
+        return re.sub(r"<[^>]+>", "", stripped).strip()
