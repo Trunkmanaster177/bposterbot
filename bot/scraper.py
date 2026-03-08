@@ -110,10 +110,11 @@ def get_latest_post_for_user(username):
                 images = _extract_images(p0)
 
                 # Double check: verify this post is actually from the right user
-                post_author = (
-                    str(p0.get("nickName") or p0.get("username") or
+                post_author = str(
+                    p0.get("nickName") or p0.get("username") or
                     p0.get("author", {}).get("nickName") or
-                    p0.get("userInfo", {}).get("nickName") or "").lower()
+                    p0.get("userInfo", {}).get("nickName") or ""
+                ).lower()
 
                 print(f"[scraper] Post author: '{post_author}' | Expected: '{username.lower()}'")
 
