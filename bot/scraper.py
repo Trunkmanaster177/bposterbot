@@ -4,12 +4,12 @@ import json
 
 TARGET_USERNAMES = ["ict_bull", "Raa_Fi"]
 LAST_POST_FILE = "last_post_id.txt"
+BINANCE_COOKIES = os.environ.get("BINANCE_COOKIES", "")
 
 
 def get_latest_post_for_user(username):
     from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 
-    profile_url = f"https://www.binance.com/en/square/profile/{username}"
     print(f"[scraper] Checking {username}...")
 
     with sync_playwright() as p:
@@ -22,121 +22,219 @@ def get_latest_post_for_user(username):
             viewport={"width": 1280, "height": 800},
             locale="en-US",
         )
+
+        # Inject cookies so API calls are authenticated
+        if BINANCE_COOKIES:
+            try:
+                cookies_raw = json.loads(BINANCE_COOKIES)
+                playwright_cookies = []
+                for c in cookies_raw:
+                    cookie = {
+                        "name": c["name"],
+                        "value": c["value"],
+                        "domain": c["domain"],
+                        "path": c.get("path", "/"),
+                        "secure": c.get("secure", False),
+                        "httpOnly": c.get("httpOnly", False),
+                    }
+                    if "expirationDate" in c:
+                        cookie["expires"] = int(c["expirationDate"])
+                    samesite = c.get("sameSite", "")
+                    if samesite and samesite.lower() not in ["unspecified", ""]:
+                        ss = samesite.capitalize()
+                        if ss in ["Strict", "Lax", "None"]:
+                            cookie["sameSite"] = ss
+                    playwright_cookies.append(cookie)
+                context.add_cookies(playwright_cookies)
+            except Exception as e:
+                print(f"[scraper] Cookie error: {e}")
+
         page = context.new_page()
 
         try:
-            # Go directly to profile page
+            # Load Square first to establish session
+            page.goto("https://www.binance.com/en/square", wait_until="domcontentloaded", timeout=30000)
+            page.wait_for_timeout(3000)
+
+            # Call the profile posts API directly from browser context
+            # This uses authenticated session so it returns real data
+            print(f"[scraper] Calling profile API for {username}...")
+
+            api_endpoints = [
+                f"https://www.binance.com/bapi/feed/v1/friendly/feed/profile/posts?username={username}&pageSize=10&pageIndex=1",
+                f"https://www.binance.com/bapi/composite/v4/friendly/pgc/feed/profile/post/list?username={username}&pageSize=10&pageIndex=1",
+                f"https://www.binance.com/bapi/feed/v1/friendly/square/profile/post/list?username={username}&pageSize=10",
+                f"https://www.binance.com/bapi/composite/v1/friendly/pgc/profile/post/list?username={username}&pageSize=10",
+            ]
+
+            posts = []
+            for endpoint in api_endpoints:
+                try:
+                    result = page.evaluate(f"""
+                        async () => {{
+                            const r = await fetch('{endpoint}', {{
+                                method: 'GET',
+                                credentials: 'include',
+                                headers: {{
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                    'Referer': 'https://www.binance.com/en/square/profile/{username}',
+                                    'Origin': 'https://www.binance.com',
+                                }}
+                            }});
+                            const text = await r.text();
+                            return {{ status: r.status, body: text }};
+                        }}
+                    """)
+                    status = result.get("status", 0)
+                    body = result.get("body", "")
+                    print(f"[scraper] {endpoint.split('?')[0].split('/')[-1]} → {status} | {body[:100]}")
+
+                    if status == 200:
+                        data = json.loads(body)
+                        found = _find_posts_in_json(data)
+                        if found:
+                            posts = found
+                            print(f"[scraper] ✅ Got {len(posts)} posts from API for {username}")
+                            break
+                except Exception as e:
+                    print(f"[scraper] API error: {e}")
+                    continue
+
+            if posts:
+                p0 = posts[0]
+                post_id = str(p0.get("id") or p0.get("postId") or "")
+                content = re.sub(r"<[^>]+>", "",
+                    p0.get("content") or p0.get("body") or p0.get("text") or ""
+                ).strip()
+                images = _extract_images(p0)
+
+                # Double check: verify this post is actually from the right user
+                post_author = (
+                    str(p0.get("nickName") or p0.get("username") or
+                    p0.get("author", {}).get("nickName") or
+                    p0.get("userInfo", {}).get("nickName") or "").lower()
+
+                print(f"[scraper] Post author: '{post_author}' | Expected: '{username.lower()}'")
+
+                if post_id:
+                    print(f"[scraper] ✅ {username} latest post: {post_id} | {len(content)} chars | {len(images)} images")
+                    browser.close()
+                    return {"id": post_id, "content": content, "images": images, "username": username}
+
+            # Fallback: navigate to profile and ONLY grab post IDs that appear
+            # in the profile-specific section (above the fold)
+            print(f"[scraper] API failed, using profile page fallback for {username}...")
+            profile_url = f"https://www.binance.com/en/square/profile/{username}"
             page.goto(profile_url, wait_until="domcontentloaded", timeout=30000)
             page.wait_for_timeout(8000)
 
-            html = page.content()
+            # Execute JS to find post links only inside the user's post feed
+            # not the recommended/trending section
+            post_id = page.evaluate("""
+                () => {
+                    // Find all post links on the page
+                    const links = Array.from(document.querySelectorAll('a[href*="/square/post/"]'));
+                    const ids = links.map(a => {
+                        const m = a.href.match(/\\/square\\/post\\/(\\d+)/);
+                        return m ? m[1] : null;
+                    }).filter(Boolean);
 
-            # Get ALL post IDs from this profile page
-            post_ids = re.findall(r"/en/square/post/(\d+)", html)
-            if not post_ids:
-                print(f"[scraper] ❌ No post IDs found on {username} profile")
+                    // Return the highest ID (most recent post)
+                    if (ids.length === 0) return null;
+                    return ids.reduce((a, b) => BigInt(a) > BigInt(b) ? a : b);
+                }
+            """)
+
+            if not post_id:
+                print(f"[scraper] ❌ No posts found for {username}")
                 browser.close()
                 return None
 
-            # Sort descending — latest first
-            post_ids = sorted(set(post_ids), key=lambda x: int(x), reverse=True)
-            latest_id = post_ids[0]
-            print(f"[scraper] {username} post IDs: {post_ids[:5]}")
+            print(f"[scraper] Fallback found post ID: {post_id}")
 
-            # Navigate to the actual post page to get content + verify owner
-            post_url = f"https://www.binance.com/en/square/post/{latest_id}"
-            print(f"[scraper] Loading post: {post_url}")
-            page.goto(post_url, wait_until="domcontentloaded", timeout=20000)
-            page.wait_for_timeout(5000)
-
-            post_html = page.content()
-
-            # Verify this post belongs to the expected creator
-            if username.lower() not in post_html.lower():
-                print(f"[scraper] ⚠️ Post {latest_id} doesn't seem to belong to {username}, checking next...")
-                # Try the next post ID
-                for pid in post_ids[1:4]:
-                    post_url2 = f"https://www.binance.com/en/square/post/{pid}"
-                    page.goto(post_url2, wait_until="domcontentloaded", timeout=15000)
-                    page.wait_for_timeout(3000)
-                    post_html2 = page.content()
-                    if username.lower() in post_html2.lower():
-                        latest_id = pid
-                        post_html = post_html2
-                        print(f"[scraper] ✅ Found correct post {pid} for {username}")
-                        break
-
-            # Extract content
-            content = ""
-            og = re.search(r'property="og:description"\s+content="([^"]+)"', post_html)
-            if not og:
-                og = re.search(r'content="([^"]+)"\s+property="og:description"', post_html)
-            if og:
-                content = og.group(1).strip()
-
-            # Extract images
-            images = []
-            # og:image
-            og_img = re.search(r'property="og:image"\s+content="([^"]+)"', post_html)
-            if not og_img:
-                og_img = re.search(r'content="([^"]+)"\s+property="og:image"', post_html)
-            if og_img:
-                img_url = og_img.group(1).strip()
-                # Only add if it looks like a post image (not logo/default)
-                if img_url.startswith("http") and any(x in img_url for x in ["feed", "post", "upload", "content"]):
-                    images.append(img_url)
-
-            # __NEXT_DATA__ for more content/images
-            nd = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', post_html, re.DOTALL)
-            if nd:
-                try:
-                    nd_str = nd.group(1)
-                    if not content:
-                        texts = re.findall(r'"content"\s*:\s*"((?:[^"\\]|\\.){30,})"', nd_str)
-                        if texts:
-                            content = max(texts, key=len)
-                    # Images from JSON
-                    img_urls = re.findall(
-                        r'https?://[^\s"\']+\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s"\']*)?',
-                        nd_str, re.IGNORECASE
-                    )
-                    for u in img_urls:
-                        if u not in images and any(x in u for x in ["feed", "post", "upload", "content", "live-admin"]):
-                            if not any(x in u.lower() for x in ["logo", "icon", "avatar", "coin", "flag"]):
-                                images.append(u)
-                except Exception:
-                    pass
-
-            print(f"[scraper] ✅ {username} | post={latest_id} | chars={len(content)} | images={len(images)}")
+            # Fetch content from post page
+            content, images = _fetch_post_page(page, post_id, username)
             browser.close()
-            return {
-                "id": latest_id,
-                "content": content,
-                "images": images[:9],
-                "username": username
-            }
+            return {"id": post_id, "content": content, "images": images, "username": username}
 
-        except PWTimeout:
-            print(f"[scraper] Timeout for {username}")
-            browser.close()
-            return None
         except Exception as e:
             print(f"[scraper] Error for {username}: {e}")
             browser.close()
             return None
 
 
+def _fetch_post_page(page, post_id, username):
+    """Fetch content and images from a post page, verify it belongs to username."""
+    from playwright.sync_api import TimeoutError as PWTimeout
+    content = ""
+    images = []
+    try:
+        url = f"https://www.binance.com/en/square/post/{post_id}"
+        page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        page.wait_for_timeout(4000)
+        html = page.content()
+
+        # Verify post belongs to this creator
+        if username.lower() not in html.lower():
+            print(f"[scraper] ⚠️ Post {post_id} doesn't belong to {username}")
+
+        # og:description for content
+        og = re.search(r'property="og:description"\s+content="([^"]+)"', html)
+        if not og:
+            og = re.search(r'content="([^"]+)"\s+property="og:description"', html)
+        if og:
+            content = og.group(1).strip()
+
+        # og:image
+        og_img = re.search(r'property="og:image"\s+content="([^"]+)"', html)
+        if not og_img:
+            og_img = re.search(r'content="([^"]+)"\s+property="og:image"', html)
+        if og_img:
+            img = og_img.group(1).strip()
+            if img.startswith("http") and any(x in img for x in ["feed", "post", "upload", "live-admin", "content"]):
+                images.append(img)
+
+    except Exception as e:
+        print(f"[scraper] Post page error: {e}")
+    return content, images
+
+
+def _extract_images(post):
+    """Extract image URLs from post JSON."""
+    images = []
+    raw = json.dumps(post)
+    for field in ["imageList", "images", "imgList", "mediaList", "attachments"]:
+        val = post.get(field)
+        if isinstance(val, list):
+            for item in val:
+                url = item if isinstance(item, str) else item.get("url") or item.get("imageUrl") or ""
+                if url.startswith("http"):
+                    images.append(url)
+    if not images:
+        urls = re.findall(r'https?://[^\s"\']+\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s"\']*)?', raw, re.IGNORECASE)
+        images = [u for u in urls if not any(x in u.lower() for x in ["logo", "icon", "avatar", "coin", "flag"])]
+    return images[:9]
+
+
+def _find_posts_in_json(data, depth=0):
+    if depth > 6:
+        return []
+    if isinstance(data, list) and len(data) > 0:
+        if isinstance(data[0], dict) and any(k in data[0] for k in ["id", "postId", "content", "body"]):
+            return data
+    if isinstance(data, dict):
+        for v in data.values():
+            result = _find_posts_in_json(v, depth + 1)
+            if result:
+                return result
+    return []
+
+
 def get_all_new_posts():
-    """
-    Check all creators and return ONLY genuinely new posts.
-    Each creator is checked independently — same post ID for different
-    creators is treated as separate posts only if both are actually new.
-    """
+    """Check all creators independently and return only genuinely new posts."""
     new_posts = []
     last_ids = load_all_last_ids()
-
-    # Track post IDs already queued this run to avoid duplicate posting
-    queued_ids = set()
 
     for username in TARGET_USERNAMES:
         post = get_latest_post_for_user(username)
@@ -149,20 +247,9 @@ def get_all_new_posts():
         if last_id is None:
             print(f"[scraper] First run for {username} — saving baseline: {current_id}")
             save_last_post_id(username, current_id)
-
         elif current_id != last_id:
-            # Genuine new post for this creator
-            if current_id in queued_ids:
-                # Same post ID already queued from another creator
-                # This means it's likely a shared/reposted content
-                # Still post it but mark as from this creator
-                print(f"[scraper] 🆕 New post from {username} (shared content): {current_id}")
-            else:
-                print(f"[scraper] 🆕 New post from {username}! {current_id} (was: {last_id})")
-
-            queued_ids.add(current_id)
+            print(f"[scraper] 🆕 New post from {username}! {current_id} (was: {last_id})")
             new_posts.append(post)
-
         else:
             print(f"[scraper] No new posts from {username}. Current: {current_id}")
 
