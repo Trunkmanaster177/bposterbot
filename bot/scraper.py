@@ -213,18 +213,6 @@ def _extract_images(post):
     return images[:9]
 
 
-def _find_posts_in_json(data, depth=0):
-    if depth > 6:
-        return []
-    if isinstance(data, list) and len(data) > 0:
-        if isinstance(data[0], dict) and any(k in data[0] for k in ["id", "postId", "content", "body"]):
-            return data
-    if isinstance(data, dict):
-        for v in data.values():
-            result = _find_posts_in_json(v, depth + 1)
-            if result:
-                return result
-    return []
 
 
 def get_all_new_posts():
@@ -267,3 +255,31 @@ def save_last_post_id(username, post_id):
     with open(LAST_POST_FILE, "w") as f:
         json.dump(ids, f, indent=2)
     print(f"[scraper] Saved {username}: {post_id}")
+
+def _is_post(item):
+    """Check if a dict looks like a real post (not user profile or other data)."""
+    if not isinstance(item, dict):
+        return False
+    has_content = any(k in item for k in ["content", "body", "text"])
+    raw_id = str(item.get("id") or item.get("postId") or "")
+    # Real post IDs are 10+ digits; user IDs are small numbers like 27
+    has_post_id = raw_id.isdigit() and len(raw_id) >= 10
+    return has_content and has_post_id
+
+
+def _find_posts_in_json(data, depth=0):
+    if depth > 6:
+        return []
+    if isinstance(data, list) and len(data) > 0:
+        if all(_is_post(item) for item in data[:3]):
+            return data
+        for item in data:
+            result = _find_posts_in_json(item, depth + 1)
+            if result:
+                return result
+    if isinstance(data, dict):
+        for v in data.values():
+            result = _find_posts_in_json(v, depth + 1)
+            if result:
+                return result
+    return []
