@@ -1,235 +1,174 @@
 import os
+import json
+import requests
 import time
-import random
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
-BINANCE_EMAIL = os.environ.get("BINANCE_EMAIL", "")
-BINANCE_PASSWORD = os.environ.get("BINANCE_PASSWORD", "")
-BINANCE_TOTP_SECRET = os.environ.get("BINANCE_TOTP_SECRET", "")  # optional 2FA
+# ── API Key from Binance Square ──────────────────────────────────────────────
+SQUARE_API_KEY = os.environ.get("SQUARE_API_KEY", "")
 
-SQUARE_HOME = "https://www.binance.com/en/square"
-LOGIN_URL = "https://accounts.binance.com/en/login"
-COOKIES_FILE = "binance_cookies.json"
+# ── All known/likely Binance Square POST endpoints ───────────────────────────
+ENDPOINTS = [
+    "https://www.binance.com/bapi/feed/v1/friendly/feed/post/create",
+    "https://www.binance.com/bapi/feed/v1/private/feed/post/create",
+    "https://www.binance.com/bapi/feed/v2/friendly/feed/post/create",
+    "https://www.binance.com/bapi/feed/v2/private/feed/post/create",
+    "https://www.binance.com/bapi/square/v1/post/create",
+    "https://www.binance.com/bapi/square/v1/private/post/create",
+    "https://www.binance.com/bapi/feed/v1/friendly/feed/square/post",
+    "https://www.binance.com/x-api/v1/square/post/create",
+    "https://api.binance.com/sapi/v1/square/post/create",
+]
 
+BASE_HEADERS = {
+    "Content-Type": "application/json",
+    "User-Agent": "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36",
+    "Accept": "application/json",
+    "Origin": "https://www.binance.com",
+    "Referer": "https://www.binance.com/en/square",
+}
 
-def get_totp_code():
-    """Generate TOTP code if secret is provided."""
-    if not BINANCE_TOTP_SECRET:
-        return None
-    try:
-        import pyotp
-        totp = pyotp.TOTP(BINANCE_TOTP_SECRET)
-        return totp.now()
-    except ImportError:
-        print("[poster] pyotp not installed, skipping 2FA")
-        return None
-
-
-def human_delay(min_s=0.8, max_s=2.2):
-    """Random human-like delay."""
-    time.sleep(random.uniform(min_s, max_s))
-
-
-def login_to_binance(page):
-    """Log in to Binance account."""
-    print("[poster] Navigating to login page...")
-    page.goto(LOGIN_URL, wait_until="domcontentloaded")
-    human_delay(2, 3)
-
-    # Enter email
-    email_input = page.locator('input[type="text"], input[name="email"], input[placeholder*="email" i]').first
-    email_input.wait_for(state="visible", timeout=10000)
-    email_input.click()
-    human_delay()
-    email_input.fill(BINANCE_EMAIL)
-    human_delay()
-
-    # Enter password
-    pass_input = page.locator('input[type="password"]').first
-    pass_input.click()
-    human_delay()
-    pass_input.fill(BINANCE_PASSWORD)
-    human_delay()
-
-    # Click login button
-    login_btn = page.locator('button[type="submit"]').first
-    login_btn.click()
-    print("[poster] Submitted login form, waiting...")
-    human_delay(3, 5)
-
-    # Handle 2FA if needed
-    totp = get_totp_code()
-    if totp:
-        try:
-            totp_input = page.locator('input[placeholder*="authenticator" i], input[placeholder*="code" i], input[data-bn-type="input"]').first
-            totp_input.wait_for(state="visible", timeout=8000)
-            totp_input.fill(totp)
-            human_delay()
-            confirm_btn = page.locator('button[type="submit"]').first
-            confirm_btn.click()
-            human_delay(3, 5)
-            print("[poster] 2FA submitted.")
-        except PlaywrightTimeout:
-            print("[poster] No 2FA prompt detected, continuing...")
-
-    # Check login success
-    page.wait_for_url("**/square**", timeout=20000)
-    print("[poster] Login successful!")
+# Once working config is discovered, it gets saved here
+WORKING_CONFIG_FILE = "working_api_config.json"
 
 
-def save_cookies(context):
-    """Save browser cookies to file for reuse."""
-    import json
-    cookies = context.cookies()
-    with open(COOKIES_FILE, "w") as f:
-        json.dump(cookies, f)
-    print(f"[poster] Saved {len(cookies)} cookies.")
+def build_headers_variants(api_key):
+    """All possible header formats the new Square API might use."""
+    return [
+        {**BASE_HEADERS, "apiKey": api_key},
+        {**BASE_HEADERS, "X-MBX-APIKEY": api_key},
+        {**BASE_HEADERS, "Authorization": f"Bearer {api_key}"},
+        {**BASE_HEADERS, "Authorization": api_key},
+        {**BASE_HEADERS, "api-key": api_key},
+        {**BASE_HEADERS, "square-api-key": api_key},
+        {**BASE_HEADERS, "x-api-key": api_key},
+        {**BASE_HEADERS, "BNC-Square-Api-Key": api_key},
+    ]
 
 
-def load_cookies(context):
-    """Load saved cookies into browser context."""
-    import json
-    if not os.path.exists(COOKIES_FILE):
+def build_body_variants(content):
+    """All possible request body formats."""
+    ts = int(time.time() * 1000)
+    return [
+        {"content": content, "type": 1},
+        {"content": content, "postType": 1},
+        {"body": content, "type": 1},
+        {"text": content, "type": 1},
+        {"content": content, "type": 1, "timestamp": ts},
+        {"content": content, "type": "POST"},
+        {"content": content},
+    ]
+
+
+def load_working_config():
+    """Load previously discovered working endpoint config."""
+    if os.path.exists(WORKING_CONFIG_FILE):
+        with open(WORKING_CONFIG_FILE) as f:
+            return json.load(f)
+    return None
+
+
+def save_working_config(url, header_key, body_keys):
+    """Save the working config for optimized future runs."""
+    config = {"endpoint": url, "header_key": header_key, "body_keys": body_keys}
+    with open(WORKING_CONFIG_FILE, "w") as f:
+        json.dump(config, f, indent=2)
+    print(f"[poster] ✅ Saved working config → {WORKING_CONFIG_FILE}")
+
+
+def is_success(status_code, response_text):
+    """Check if API response indicates success."""
+    if status_code not in [200, 201]:
         return False
-    with open(COOKIES_FILE, "r") as f:
-        cookies = json.load(f)
-    context.add_cookies(cookies)
-    print(f"[poster] Loaded {len(cookies)} cookies.")
-    return True
-
-
-def check_logged_in(page):
-    """Check if we're already logged in."""
-    page.goto(SQUARE_HOME, wait_until="domcontentloaded")
-    human_delay(2, 3)
-    # Look for post button or avatar which indicates login
     try:
-        page.locator('[data-bn-type="avatar"], .create-post-btn, [class*="avatar"], [class*="Avatar"]').first.wait_for(
-            state="visible", timeout=8000
+        data = json.loads(response_text)
+        code = str(data.get("code", data.get("status", "")))
+        return (
+            code in ["000000", "0", "200", "SUCCESS", "success"]
+            or data.get("success") is True
+            or data.get("data") is not None
         )
-        print("[poster] Already logged in via cookies.")
-        return True
-    except PlaywrightTimeout:
-        return False
+    except Exception:
+        return status_code in [200, 201]
 
 
-def post_to_square(content: str) -> bool:
+def post_to_square(content):
     """
-    Use Playwright to post content to Binance Square.
+    Post content to Binance Square using the API key.
+    First tries previously working config, then auto-discovers.
     Returns True on success.
     """
     if not content.strip():
-        print("[poster] Empty content, skipping post.")
+        print("[poster] Empty content, skipping.")
         return False
 
-    if not BINANCE_EMAIL or not BINANCE_PASSWORD:
-        print("[poster] ERROR: BINANCE_EMAIL or BINANCE_PASSWORD not set in environment.")
+    api_key = SQUARE_API_KEY
+    if not api_key:
+        print("[poster] ERROR: SQUARE_API_KEY not set in environment.")
         return False
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=True,
-            args=[
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-blink-features=AutomationControlled",
-            ],
-        )
-        context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            viewport={"width": 1280, "height": 800},
-            locale="en-US",
-        )
-        page = context.new_page()
+    print(f"[poster] Using Binance Square API key: {api_key[:8]}****")
 
+    # ── Try previously saved working config first ────────────────────────────
+    config = load_working_config()
+    if config:
+        print(f"[poster] Using saved config: {config['endpoint']}")
+        headers = {**BASE_HEADERS, config["header_key"]: api_key}
+        body = {k: (content if k in ["content", "body", "text"] else 1)
+                for k in config["body_keys"]}
         try:
-            # Try cookie-based auth first
-            cookies_loaded = load_cookies(context)
-            if cookies_loaded and check_logged_in(page):
-                pass  # Already logged in
+            resp = requests.post(config["endpoint"], json=body, headers=headers, timeout=12)
+            print(f"[poster] [{resp.status_code}] {resp.text[:200]}")
+            if is_success(resp.status_code, resp.text):
+                print("[poster] ✅ Post published!")
+                return True
             else:
-                login_to_binance(page)
-                save_cookies(context)
-
-            # Navigate to Square
-            print("[poster] Navigating to Binance Square...")
-            page.goto(SQUARE_HOME, wait_until="domcontentloaded")
-            human_delay(2, 4)
-
-            # Click the "Create Post" / write box
-            print("[poster] Looking for post creation area...")
-            create_selectors = [
-                '[placeholder*="Share" i]',
-                '[placeholder*="What" i]',
-                '[placeholder*="post" i]',
-                '[class*="create-post" i]',
-                '[class*="CreatePost" i]',
-                '[class*="postInput" i]',
-                'div[contenteditable="true"]',
-                'textarea',
-            ]
-            post_input = None
-            for sel in create_selectors:
-                try:
-                    el = page.locator(sel).first
-                    el.wait_for(state="visible", timeout=4000)
-                    post_input = el
-                    print(f"[poster] Found input with selector: {sel}")
-                    break
-                except PlaywrightTimeout:
-                    continue
-
-            if post_input is None:
-                print("[poster] Could not find post input. Taking screenshot for debug...")
-                page.screenshot(path="debug_screenshot.png")
-                return False
-
-            post_input.click()
-            human_delay(1, 2)
-
-            # Type the content (chunk it to seem human)
-            print(f"[poster] Typing content ({len(content)} chars)...")
-            post_input.fill(content)
-            human_delay(1, 2)
-
-            # Find and click Submit/Post button
-            submit_selectors = [
-                'button:has-text("Post")',
-                'button:has-text("Submit")',
-                'button:has-text("Publish")',
-                '[class*="submit" i]',
-                '[class*="publish" i]',
-                'button[type="submit"]',
-            ]
-            submitted = False
-            for sel in submit_selectors:
-                try:
-                    btn = page.locator(sel).last
-                    btn.wait_for(state="visible", timeout=4000)
-                    btn.click()
-                    print(f"[poster] Clicked submit with selector: {sel}")
-                    submitted = True
-                    break
-                except PlaywrightTimeout:
-                    continue
-
-            if not submitted:
-                print("[poster] Could not find submit button. Taking screenshot...")
-                page.screenshot(path="debug_submit.png")
-                return False
-
-            human_delay(3, 5)
-            print("[poster] ✅ Post submitted successfully!")
-            save_cookies(context)  # Refresh cookies
-            return True
-
+                print("[poster] Saved config failed, running discovery...")
         except Exception as e:
-            print(f"[poster] ERROR: {e}")
-            try:
-                page.screenshot(path="debug_error.png")
-            except Exception:
-                pass
-            return False
-        finally:
-            browser.close()
+            print(f"[poster] Saved config error: {e}, running discovery...")
+
+    # ── Auto-discovery: try all endpoint + header + body combos ─────────────
+    print("[poster] Running API endpoint discovery...")
+    promising = []
+
+    for url in ENDPOINTS:
+        for headers in build_headers_variants(api_key):
+            for body in build_body_variants(content):
+                try:
+                    resp = requests.post(url, json=body, headers=headers, timeout=10)
+
+                    if resp.status_code in [404, 405, 301, 302]:
+                        continue
+
+                    print(f"  [{resp.status_code}] {url} | {resp.text[:100]}")
+
+                    if is_success(resp.status_code, resp.text):
+                        # Find which extra header key was added
+                        extra_keys = [k for k in headers if k not in BASE_HEADERS]
+                        header_key = extra_keys[0] if extra_keys else "apiKey"
+                        save_working_config(url, header_key, list(body.keys()))
+                        print(f"\n[poster] ✅ SUCCESS! Post published via {url}")
+                        return True
+
+                    promising.append({
+                        "status": resp.status_code,
+                        "url": url,
+                        "response": resp.text[:200]
+                    })
+
+                except requests.exceptions.RequestException:
+                    pass
+
+    # ── Report results ───────────────────────────────────────────────────────
+    if promising:
+        print(f"\n[poster] ⚠️ Got {len(promising)} non-404 responses but no success.")
+        print("[poster] Best response:")
+        print(json.dumps(promising[0], indent=2))
+        print("\n[poster] ACTION NEEDED: Check response above.")
+        print("[poster] If you see the correct endpoint in your app's network traffic,")
+        print("[poster] create working_api_config.json manually with the endpoint details.")
+    else:
+        print("\n[poster] ❌ All endpoints returned 404/405.")
+        print("[poster] The exact API endpoint is not yet public.")
+        print("[poster] Please intercept Binance app traffic to find it (see README).")
+
+    return False
