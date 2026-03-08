@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""
-Binance Square Mirror Bot
-Monitors multiple creators and reposts to your account.
-"""
-
 import sys
 import os
 
@@ -30,17 +25,19 @@ def main():
     for post in new_posts:
         username = post.get("username", "unknown")
         content = post.get("content", "")
+        images = post.get("images", [])
         post_id = post["id"]
 
         print(f"\n[bot] 📝 Posting from {username} (ID: {post_id})")
-        print(f"[bot] Content preview: {content[:100]}...")
+        print(f"[bot] Text: {content[:100]}...")
+        print(f"[bot] Images: {len(images)}")
 
-        if not content:
-            print(f"[bot] ⚠️ No text content (image-only post?). Skipping.")
+        if not content and not images:
+            print(f"[bot] ⚠️ No content or images. Skipping.")
             save_last_post_id(username, post_id)
             continue
 
-        success = post_to_square(content)
+        success = post_to_square(content, images)
 
         if success:
             save_last_post_id(username, post_id)
