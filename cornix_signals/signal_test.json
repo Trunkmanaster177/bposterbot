@@ -1,0 +1,9 @@
+{
+  "pair": "BTCUSDT",
+  "action": "buy",
+  "exchange": "Binance",
+  "entry": "83500",
+  "targets": ["85000", "87000", "90000"],
+  "stopLoss": "81000",
+  "leverage": "10"
+}
