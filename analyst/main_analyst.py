@@ -7,6 +7,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from market_data import get_market_snapshot
 from ai_analyst import analyse_and_generate_signal, format_signal_post
+from signal_tracker import (can_post_coin, record_posted_signal,
+                             check_tp_sl_hits, format_tp_hit, format_sl_hit)
 from poster import post_to_square
 
 
@@ -15,6 +17,20 @@ def main():
     print("🤖 AI Crypto Analyst Bot")
     print("=" * 50)
 
+    # ── Step 1: Check TP/SL hits on previously posted signals ──────────────
+    print("\n[main] Checking TP/SL hits on active signals...")
+    hits = check_tp_sl_hits()
+
+    for hit in hits:
+        if hit["type"] == "TP":
+            content = format_tp_hit(hit)
+        else:
+            content = format_sl_hit(hit)
+
+        print(f"\n[main] Posting {hit['type']} hit for {hit['symbol']}:\n{content}\n")
+        post_to_square(content, images=[])
+
+    # ── Step 2: Scan market for new signals ────────────────────────────────
     print("\n[main] Scanning market for high volume coins...")
     coins = get_market_snapshot()
 
@@ -34,11 +50,16 @@ def main():
 
         print(f"\n[main] {symbol} | RSI: {rsi} | Vol: {vol_ratio}x | 2h: {change_2h}%")
 
-        # Filter: only analyze if RSI is not neutral AND some price movement
+        # Skip neutral coins
         if 45 <= rsi <= 55 and abs(change_2h) < 1:
-            print(f"[main] Skipping {symbol} — RSI neutral, no clear momentum")
+            print(f"[main] Skipping {symbol} — RSI neutral, no momentum")
             continue
 
+        # ── 12h dedup check ──────────────────────────────────────────────
+        if not can_post_coin(symbol, interval_hours=12):
+            continue
+
+        # Get AI signal
         print(f"[main] Asking AI to analyze {symbol}...")
         signal = analyse_and_generate_signal(coin)
 
@@ -52,13 +73,12 @@ def main():
         success = post_to_square(content, images=[])
         if success:
             print(f"[main] ✅ Posted signal for {symbol}!")
+            record_posted_signal(signal)
             signals_posted += 1
         else:
             print(f"[main] ❌ Failed to post for {symbol}")
 
-    print(f"\n[main] Done! Posted {signals_posted} signal(s) this run.")
-    if signals_posted == 0:
-        print("[main] No strong signals found this hour.")
+    print(f"\n[main] Done! Posted {signals_posted} new signal(s) this run.")
 
 
 if __name__ == "__main__":
