@@ -117,7 +117,7 @@ def format_signal_post(signal: dict) -> str:
     coin       = symbol.replace("USDT", "")
 
     lines = [
-        f"{emoji} {symbol} — {action} SIGNAL",
+        f"{emoji} ${symbol} — {action} SIGNAL",
         f"{market_tag} | {conf_emoji} Confidence: {confidence}",
         "",
         f"📍 Entry:  {signal['entry']}",
