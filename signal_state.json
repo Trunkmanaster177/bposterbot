@@ -1,0 +1,111 @@
+{
+  "posted": {
+    "BTCUSDT": 1773157307.1146786,
+    "ETHUSDT": 1773157343.7174287,
+    "TRXUSDT": 1773157381.2812285,
+    "DOGEUSDT": 1773157418.7246716,
+    "XRPUSDT": 1773157456.1731756,
+    "SOLUSDT": 1773157491.41692,
+    "PEPEUSDT": 1773157527.9617422
+  },
+  "active": {
+    "BTCUSDT": {
+      "signal": "BUY",
+      "entry": 71058.3800293458,
+      "tp1": 71500,
+      "tp2": 71900,
+      "tp3": 72300,
+      "sl": 69296.4,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773157307.114682,
+      "market": "SPOT"
+    },
+    "ETHUSDT": {
+      "signal": "BUY",
+      "entry": 2065.51,
+      "tp1": 2090.0,
+      "tp2": 2115.0,
+      "tp3": 2140.0,
+      "sl": 2008.78,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773157343.7174308,
+      "market": "SPOT"
+    },
+    "TRXUSDT": {
+      "signal": "BUY",
+      "entry": 0.284369856356828,
+      "tp1": 0.287,
+      "tp2": 0.2895,
+      "tp3": 0.292,
+      "sl": 0.2835,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773157381.281231,
+      "market": "SPOT"
+    },
+    "DOGEUSDT": {
+      "signal": "BUY",
+      "entry": 0.0985,
+      "tp1": 0.1005,
+      "tp2": 0.1025,
+      "tp3": 0.1045,
+      "sl": 0.0942,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773157418.724674,
+      "market": "SPOT"
+    },
+    "XRPUSDT": {
+      "signal": "BUY",
+      "entry": 1.426139376528,
+      "tp1": 1.44301653984601,
+      "tp2": 1.455,
+      "tp3": 1.467,
+      "sl": 1.382,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773157456.1731782,
+      "market": "SPOT"
+    },
+    "SOLUSDT": {
+      "signal": "BUY",
+      "entry": 87.75,
+      "tp1": 89.0,
+      "tp2": 90.25,
+      "tp3": 91.5,
+      "sl": 84.9,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773157491.4169226,
+      "market": "SPOT"
+    },
+    "PEPEUSDT": {
+      "signal": "BUY",
+      "entry": 3.45331826411224e-06,
+      "tp1": 3.512e-06,
+      "tp2": 3.571e-06,
+      "tp3": 3.63e-06,
+      "sl": 3.394e-06,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773157527.961744,
+      "market": "SPOT"
+    }
+  }
+}
