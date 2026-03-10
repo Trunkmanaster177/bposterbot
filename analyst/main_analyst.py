@@ -15,24 +15,30 @@ def main():
     print("🤖 AI Crypto Analyst Bot")
     print("=" * 50)
 
-    # Get top volume coins + indicators
     print("\n[main] Scanning market for high volume coins...")
     coins = get_market_snapshot()
-    print(f"[main] Analyzing {len(coins)} coins...")
 
+    if not coins:
+        print("[main] ❌ Could not fetch market data.")
+        sys.exit(0)
+
+    print(f"[main] Analyzing {len(coins)} coins...")
     signals_posted = 0
 
     for coin in coins:
-        symbol = coin["symbol"]
-        vol_ratio = coin.get("indicators_1h", {}).get("volume_ratio", 1)
-        print(f"\n[main] {symbol} | Volume surge: {vol_ratio}x | Change 2h: {coin.get('indicators_1h', {}).get('change_2h', 0)}%")
+        symbol    = coin["symbol"]
+        ind       = coin.get("indicators_1h", {})
+        rsi       = ind.get("rsi", 50)
+        vol_ratio = ind.get("volume_ratio", 1.0)
+        change_2h = ind.get("change_2h", 0)
 
-        # Only analyze coins with significant volume surge
-        if vol_ratio < 1.3:
-            print(f"[main] Skipping {symbol} — no significant volume surge")
+        print(f"\n[main] {symbol} | RSI: {rsi} | Vol: {vol_ratio}x | 2h: {change_2h}%")
+
+        # Filter: only analyze if RSI is not neutral AND some price movement
+        if 45 <= rsi <= 55 and abs(change_2h) < 1:
+            print(f"[main] Skipping {symbol} — RSI neutral, no clear momentum")
             continue
 
-        # Ask Claude AI for signal
         print(f"[main] Asking AI to analyze {symbol}...")
         signal = analyse_and_generate_signal(coin)
 
@@ -40,20 +46,19 @@ def main():
             print(f"[main] No clear signal for {symbol}")
             continue
 
-        # Format and post
         content = format_signal_post(signal)
-        print(f"\n[main] Signal for {symbol}:\n{content}\n")
+        print(f"\n[main] Signal:\n{content}\n")
 
         success = post_to_square(content, images=[])
         if success:
             print(f"[main] ✅ Posted signal for {symbol}!")
             signals_posted += 1
         else:
-            print(f"[main] ❌ Failed to post signal for {symbol}")
+            print(f"[main] ❌ Failed to post for {symbol}")
 
     print(f"\n[main] Done! Posted {signals_posted} signal(s) this run.")
     if signals_posted == 0:
-        print("[main] No strong signals found this hour — market may be ranging.")
+        print("[main] No strong signals found this hour.")
 
 
 if __name__ == "__main__":
