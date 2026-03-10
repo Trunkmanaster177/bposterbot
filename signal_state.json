@@ -92,20 +92,6 @@
       "sl_hit": false,
       "posted_at": 1773157491.4169226,
       "market": "SPOT"
-    },
-    "PEPEUSDT": {
-      "signal": "BUY",
-      "entry": 3.45331826411224e-06,
-      "tp1": 3.512e-06,
-      "tp2": 3.571e-06,
-      "tp3": 3.63e-06,
-      "sl": 3.394e-06,
-      "tp1_hit": false,
-      "tp2_hit": false,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773157527.961744,
-      "market": "SPOT"
     }
   }
 }
