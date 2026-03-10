@@ -4,7 +4,7 @@ import requests
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL   = "llama3-70b-8192"  # Free, fast, accurate
+GROQ_MODEL   = "llama-3.3-70b-versatile"  # Free, fast, accurate
 
 
 def analyse_and_generate_signal(coin: dict) -> dict | None:
