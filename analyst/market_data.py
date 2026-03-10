@@ -1,96 +1,89 @@
 import requests
+import time
 
-# CoinGecko free API — no geo restrictions, no API key needed
-COINGECKO_API = "https://api.coingecko.com/api/v3"
+# CryptoCompare - free, no geo restrictions, no API key needed for basic use
+CC_API = "https://min-api.cryptocompare.com/data"
 HEADERS = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
+
+# Top coins to always analyze (skip stablecoins)
+STABLECOINS = {"USDT", "USDC", "BUSD", "DAI", "TUSD", "USD1", "FDUSD"}
+TOP_COINS = ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "ADA", "AVAX", "MATIC", "DOT"]
 
 
 def safe_get(url, params=None):
     try:
         resp = requests.get(url, params=params, headers=HEADERS, timeout=20)
-        print(f"[market] GET {url.split('/')[-1]} → {resp.status_code}")
-        if resp.status_code != 200:
-            print(f"[market] ⚠️ Error: {resp.text[:100]}")
-            return None
-        return resp.json()
+        if resp.status_code == 200:
+            return resp.json()
+        print(f"[market] ⚠️ {url.split('/')[-1]} → {resp.status_code}: {resp.text[:80]}")
+        return None
     except Exception as e:
         print(f"[market] Request error: {e}")
         return None
 
 
-def get_top_volume_coins(limit=8):
-    """Get top coins by 24h volume from CoinGecko."""
-    data = safe_get(f"{COINGECKO_API}/coins/markets", {
-        "vs_currency":    "usd",
-        "order":          "volume_desc",
-        "per_page":       limit,
-        "page":           1,
-        "sparkline":      False,
-        "price_change_percentage": "1h,24h",
+def get_hourly_candles(symbol, limit=24):
+    """Get last 24 hourly candles for a coin."""
+    data = safe_get(f"{CC_API}/histohour", {
+        "fsym":  symbol,
+        "tsym":  "USD",
+        "limit": limit,
+    })
+    if not data or data.get("Response") == "Error":
+        print(f"[market] No candles for {symbol}: {data.get('Message', '') if data else ''}")
+        return []
+    return [{
+        "open":   c["open"],
+        "high":   c["high"],
+        "low":    c["low"],
+        "close":  c["close"],
+        "volume": c["volumefrom"],
+    } for c in data.get("Data", {}).get("Data", []) if c["close"] > 0]
+
+
+def get_top_coins_by_volume():
+    """Get top coins sorted by 24h volume."""
+    data = safe_get(f"{CC_API}/top/totalvolfull", {
+        "limit": 20,
+        "tsym":  "USD",
     })
     if not data:
-        return []
+        return TOP_COINS[:8]
 
     coins = []
-    for c in data:
-        coins.append({
-            "symbol":    c["symbol"].upper() + "USDT",
-            "id":        c["id"],
-            "name":      c["name"],
-            "price":     c["current_price"],
-            "volume":    c["total_volume"],
-            "change_24h": c.get("price_change_percentage_24h") or 0,
-            "change_1h":  c.get("price_change_percentage_1h_in_currency") or 0,
-            "high":      c.get("high_24h") or c["current_price"],
-            "low":       c.get("low_24h")  or c["current_price"],
-            "market":    "SPOT",
-            "market_cap": c.get("market_cap") or 0,
-        })
-    return coins
+    for item in data.get("Data", []):
+        info = item.get("CoinInfo", {})
+        raw  = item.get("RAW", {}).get("USD", {})
+        sym  = info.get("Name", "")
+        if sym and sym not in STABLECOINS:
+            coins.append({
+                "symbol":     sym + "USDT",
+                "coin":       sym,
+                "price":      raw.get("PRICE", 0),
+                "volume":     raw.get("TOTALVOLUME24HTO", 0),
+                "change_24h": raw.get("CHANGEPCT24HOUR", 0),
+                "high":       raw.get("HIGH24HOUR", 0),
+                "low":        raw.get("LOW24HOUR", 0),
+                "market":     "SPOT",
+            })
+    return coins[:8] if coins else [{"symbol": s + "USDT", "coin": s, "price": 0,
+                                      "volume": 0, "change_24h": 0, "high": 0,
+                                      "low": 0, "market": "SPOT"} for s in TOP_COINS[:8]]
 
 
-def get_ohlc(coin_id, days=2):
-    """Get OHLC candles for a coin (CoinGecko returns 1h candles for 2 days)."""
-    data = safe_get(f"{COINGECKO_API}/coins/{coin_id}/ohlc", {
-        "vs_currency": "usd",
-        "days": days,
-    })
-    if not data or not isinstance(data, list):
-        return []
-    # Each item: [timestamp, open, high, low, close]
-    return [{
-        "open":   c[1],
-        "high":   c[2],
-        "low":    c[3],
-        "close":  c[4],
-        "volume": 0,  # OHLC endpoint doesn't include volume
-    } for c in data]
-
-
-def get_volume_chart(coin_id, days=2):
-    """Get volume data separately."""
-    data = safe_get(f"{COINGECKO_API}/coins/{coin_id}/market_chart", {
-        "vs_currency": "usd",
-        "days":        days,
-        "interval":    "hourly",
-    })
-    if not data:
-        return []
-    return [v[1] for v in data.get("total_volumes", [])]
-
-
-def calculate_indicators(candles, volumes=None):
+def calculate_indicators(candles):
     if len(candles) < 14:
         return {}
     try:
-        closes = [c["close"] for c in candles]
-        highs  = [c["high"]  for c in candles]
-        lows   = [c["low"]   for c in candles]
+        closes = [c["close"]  for c in candles]
+        highs  = [c["high"]   for c in candles]
+        lows   = [c["low"]    for c in candles]
+        vols   = [c["volume"] for c in candles]
 
         # RSI 14
         gains  = [max(closes[i] - closes[i-1], 0) for i in range(1, 15)]
         losses = [max(closes[i-1] - closes[i], 0) for i in range(1, 15)]
-        avg_g  = sum(gains)  / 14
+        avg_g  = sum(gains) / 14
         avg_l  = sum(losses) / 14
         rs     = avg_g / avg_l if avg_l > 0 else 100
         rsi    = round(100 - (100 / (1 + rs)), 1)
@@ -99,19 +92,17 @@ def calculate_indicators(candles, volumes=None):
         def ema(data, period):
             k = 2 / (period + 1)
             val = sum(data[:period]) / period
-            for price in data[period:]:
-                val = price * k + val * (1 - k)
-            return val
+            for p in data[period:]:
+                val = p * k + val * (1 - k)
+            return round(val, 6)
 
-        ema9  = round(ema(closes, 9),  6) if len(closes) >= 9  else closes[-1]
-        ema21 = round(ema(closes, 21), 6) if len(closes) >= 21 else closes[-1]
+        ema9  = ema(closes, 9)  if len(closes) >= 9  else closes[-1]
+        ema21 = ema(closes, 21) if len(closes) >= 21 else closes[-1]
 
-        # Volume surge from external volume data
-        vol_ratio = 1.0
-        if volumes and len(volumes) >= 6:
-            vol_recent = sum(volumes[-3:]) / 3
-            vol_prev   = sum(volumes[-6:-3]) / 3
-            vol_ratio  = round(vol_recent / vol_prev, 2) if vol_prev > 0 else 1.0
+        # Volume surge: last 3h vs previous 3h
+        vol_recent = sum(vols[-3:]) / 3 if len(vols) >= 3 else vols[-1]
+        vol_prev   = sum(vols[-6:-3]) / 3 if len(vols) >= 6 else vol_recent
+        vol_ratio  = round(vol_recent / vol_prev, 2) if vol_prev > 0 else 1.0
 
         return {
             "rsi":          rsi,
@@ -130,31 +121,27 @@ def calculate_indicators(candles, volumes=None):
 
 
 def get_market_snapshot():
-    print("[market] Fetching top volume coins from CoinGecko...")
-    coins = get_top_volume_coins(8)
-    print(f"[market] Got {len(coins)} coins")
+    print("[market] Fetching top volume coins...")
+    coins = get_top_coins_by_volume()
+    print(f"[market] Got {len(coins)} coins: {[c['symbol'] for c in coins]}")
 
-    if not coins:
-        return []
-
-    print(f"[market] Getting OHLC + volume data...")
-    import time
     for i, coin in enumerate(coins):
-        # CoinGecko free tier: 10-30 req/min — add small delay
         if i > 0:
-            time.sleep(2)
+            time.sleep(1)  # gentle rate limiting
+        sym = coin["coin"]
+        candles = get_hourly_candles(sym, limit=24)
+        coin["indicators_1h"]  = calculate_indicators(candles)
+        coin["indicators_15m"] = coin["indicators_1h"]  # reuse for now
 
-        candles = get_ohlc(coin["id"], days=2)
-        volumes = get_volume_chart(coin["id"], days=2)
-        coin["indicators_1h"] = calculate_indicators(candles, volumes)
-
-        # Use 1h change as volume ratio fallback if API fails
-        if not coin["indicators_1h"].get("volume_ratio"):
-            coin["indicators_1h"]["volume_ratio"] = 1.0
-
-        # No separate 15m data on free CoinGecko — reuse 1h
-        coin["indicators_15m"] = coin["indicators_1h"]
-
-        print(f"[market] {coin['symbol']} | RSI: {coin['indicators_1h'].get('rsi','?')} | Vol ratio: {coin['indicators_1h'].get('volume_ratio','?')}x")
+        ind = coin["indicators_1h"]
+        if ind:
+            # Fill price from candles if missing
+            if not coin["price"] and ind.get("current"):
+                coin["price"] = ind["current"]
+            print(f"[market] {coin['symbol']} | RSI: {ind.get('rsi','?')} | "
+                  f"Vol: {ind.get('volume_ratio','?')}x | "
+                  f"2h: {ind.get('change_2h','?')}%")
+        else:
+            print(f"[market] {coin['symbol']} | No indicator data")
 
     return coins
