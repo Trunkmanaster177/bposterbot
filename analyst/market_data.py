@@ -38,7 +38,7 @@ def get_hourly_candles(symbol, limit=24):
         "low":    c["low"],
         "close":  c["close"],
         "volume": c["volumefrom"],
-    } for c in data.get("Data", {}).get("Data", []) if c["close"] > 0]
+    } for c in (data.get("Data") if isinstance(data.get("Data"), list) else data.get("Data", {}).get("Data", [])) if isinstance(c, dict) and c.get("close", 0) > 0]
 
 
 def get_top_coins_by_volume():
