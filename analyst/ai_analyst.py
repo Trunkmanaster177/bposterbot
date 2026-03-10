@@ -25,7 +25,7 @@ Analyze this coin and generate a trading signal based on the data below.
 
 ## Coin: {symbol} ({market})
 - Current Price: {price}
-- 24h Change: {coin['change']}%
+- 24h Change: {coin.get('change_24h', coin.get('change', 0))}%
 - 24h Volume: ${coin['volume']:,.0f}
 - 24h High: {coin['high']} | Low: {coin['low']}
 
