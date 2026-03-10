@@ -1,153 +1,162 @@
 import requests
 import json
 
-BINANCE_API = "https://api.binance.com/api/v3"
-FUTURES_API = "https://fapi.binance.com/fapi/v1"
-HEADERS = {"User-Agent": "Mozilla/5.0"}
+BINANCE_API  = "https://api.binance.com/api/v3"
+FUTURES_API  = "https://fapi.binance.com/fapi/v1"
+HEADERS      = {"User-Agent": "Mozilla/5.0"}
+
+
+def safe_get(url, params=None):
+    try:
+        resp = requests.get(url, params=params, headers=HEADERS, timeout=15)
+        print(f"[market] GET {url.split('/')[-1]} → {resp.status_code}")
+        data = resp.json()
+        # API returned an error dict instead of list
+        if isinstance(data, dict):
+            print(f"[market] ⚠️ Unexpected response: {str(data)[:100]}")
+            return []
+        return data
+    except Exception as e:
+        print(f"[market] Request error: {e}")
+        return []
 
 
 def get_top_volume_spot(limit=5):
-    """Get top volume spot pairs from Binance (last 24h)."""
+    tickers = safe_get(f"{BINANCE_API}/ticker/24hr")
+    if not tickers:
+        return []
     try:
-        resp = requests.get(f"{BINANCE_API}/ticker/24hr", headers=HEADERS, timeout=15)
-        tickers = resp.json()
-
-        # Filter USDT pairs only, sort by quote volume
-        usdt = [t for t in tickers if t["symbol"].endswith("USDT") and float(t["quoteVolume"]) > 0]
+        usdt = [t for t in tickers
+                if isinstance(t, dict)
+                and t.get("symbol", "").endswith("USDT")
+                and float(t.get("quoteVolume", 0)) > 0]
         usdt.sort(key=lambda x: float(x["quoteVolume"]), reverse=True)
-        top = usdt[:limit]
-
-        return [{"symbol": t["symbol"], "price": float(t["lastPrice"]),
-                 "volume": float(t["quoteVolume"]), "change": float(t["priceChangePercent"]),
-                 "high": float(t["highPrice"]), "low": float(t["lowPrice"]),
-                 "market": "SPOT"} for t in top]
+        return [{
+            "symbol":  t["symbol"],
+            "price":   float(t["lastPrice"]),
+            "volume":  float(t["quoteVolume"]),
+            "change":  float(t["priceChangePercent"]),
+            "high":    float(t["highPrice"]),
+            "low":     float(t["lowPrice"]),
+            "market":  "SPOT"
+        } for t in usdt[:limit]]
     except Exception as e:
-        print(f"[market] Spot error: {e}")
+        print(f"[market] Spot parse error: {e}")
         return []
 
 
 def get_top_volume_futures(limit=5):
-    """Get top volume futures pairs from Binance."""
+    tickers = safe_get(f"{FUTURES_API}/ticker/24hr")
+    if not tickers:
+        return []
     try:
-        resp = requests.get(f"{FUTURES_API}/ticker/24hrVolume", headers=HEADERS, timeout=15)
-        if resp.status_code != 200:
-            # Try alternative endpoint
-            resp = requests.get(f"{FUTURES_API}/ticker/24hr", headers=HEADERS, timeout=15)
-        tickers = resp.json()
-
-        usdt = [t for t in tickers if t["symbol"].endswith("USDT") and float(t.get("quoteVolume", 0)) > 0]
+        usdt = [t for t in tickers
+                if isinstance(t, dict)
+                and t.get("symbol", "").endswith("USDT")
+                and float(t.get("quoteVolume", 0)) > 0]
         usdt.sort(key=lambda x: float(x.get("quoteVolume", 0)), reverse=True)
-        top = usdt[:limit]
-
-        return [{"symbol": t["symbol"], "price": float(t["lastPrice"]),
-                 "volume": float(t.get("quoteVolume", 0)), "change": float(t["priceChangePercent"]),
-                 "high": float(t["highPrice"]), "low": float(t["lowPrice"]),
-                 "market": "FUTURES"} for t in top]
+        return [{
+            "symbol":  t["symbol"],
+            "price":   float(t["lastPrice"]),
+            "volume":  float(t.get("quoteVolume", 0)),
+            "change":  float(t["priceChangePercent"]),
+            "high":    float(t["highPrice"]),
+            "low":     float(t["lowPrice"]),
+            "market":  "FUTURES"
+        } for t in usdt[:limit]]
     except Exception as e:
-        print(f"[market] Futures error: {e}")
+        print(f"[market] Futures parse error: {e}")
         return []
 
 
 def get_klines(symbol, interval="1h", limit=24, market="SPOT"):
-    """Get candlestick data for a symbol."""
+    base = BINANCE_API if market == "SPOT" else FUTURES_API
+    data = safe_get(f"{base}/klines", {"symbol": symbol, "interval": interval, "limit": limit})
+    if not data:
+        return []
     try:
-        base = BINANCE_API if market == "SPOT" else FUTURES_API
-        resp = requests.get(
-            f"{base}/klines",
-            params={"symbol": symbol, "interval": interval, "limit": limit},
-            headers=HEADERS, timeout=15
-        )
-        candles = resp.json()
-        # [open_time, open, high, low, close, volume, ...]
         return [{
-            "open": float(c[1]),
-            "high": float(c[2]),
-            "low": float(c[3]),
-            "close": float(c[4]),
+            "open":   float(c[1]),
+            "high":   float(c[2]),
+            "low":    float(c[3]),
+            "close":  float(c[4]),
             "volume": float(c[5]),
-        } for c in candles]
+        } for c in data if isinstance(c, list)]
     except Exception as e:
-        print(f"[market] Klines error for {symbol}: {e}")
+        print(f"[market] Klines parse error for {symbol}: {e}")
         return []
 
 
 def calculate_indicators(candles):
-    """Calculate RSI, EMA, support/resistance from candles."""
     if len(candles) < 14:
         return {}
+    try:
+        closes = [c["close"]  for c in candles]
+        highs  = [c["high"]   for c in candles]
+        lows   = [c["low"]    for c in candles]
+        vols   = [c["volume"] for c in candles]
 
-    closes = [c["close"] for c in candles]
-    highs  = [c["high"] for c in candles]
-    lows   = [c["low"] for c in candles]
-    vols   = [c["volume"] for c in candles]
+        # RSI 14
+        gains  = [max(closes[i] - closes[i-1], 0) for i in range(1, 15)]
+        losses = [max(closes[i-1] - closes[i], 0) for i in range(1, 15)]
+        avg_g  = sum(gains)  / 14
+        avg_l  = sum(losses) / 14
+        rs     = avg_g / avg_l if avg_l > 0 else 100
+        rsi    = round(100 - (100 / (1 + rs)), 1)
 
-    # RSI (14)
-    gains, losses = [], []
-    for i in range(1, 14):
-        diff = closes[i] - closes[i-1]
-        gains.append(max(diff, 0))
-        losses.append(max(-diff, 0))
-    avg_gain = sum(gains) / 14
-    avg_loss = sum(losses) / 14
-    rs = avg_gain / avg_loss if avg_loss > 0 else 100
-    rsi = 100 - (100 / (1 + rs))
+        # EMA
+        def ema(data, period):
+            k = 2 / (period + 1)
+            val = sum(data[:period]) / period
+            for price in data[period:]:
+                val = price * k + val * (1 - k)
+            return val
 
-    # EMA 9 and 21
-    def ema(data, period):
-        k = 2 / (period + 1)
-        result = [sum(data[:period]) / period]
-        for price in data[period:]:
-            result.append(price * k + result[-1] * (1 - k))
-        return result
+        ema9  = round(ema(closes, 9),  6) if len(closes) >= 9  else closes[-1]
+        ema21 = round(ema(closes, 21), 6) if len(closes) >= 21 else closes[-1]
 
-    ema9  = ema(closes, 9)[-1]  if len(closes) >= 9  else closes[-1]
-    ema21 = ema(closes, 21)[-1] if len(closes) >= 21 else closes[-1]
+        # Volume surge
+        vol_recent = sum(vols[-3:]) / 3 if len(vols) >= 3 else vols[-1]
+        vol_prev   = sum(vols[-6:-3]) / 3 if len(vols) >= 6 else vol_recent
+        vol_ratio  = round(vol_recent / vol_prev, 2) if vol_prev > 0 else 1.0
 
-    # Volume trend (last 3h vs previous 3h)
-    vol_recent = sum(vols[-3:]) / 3 if len(vols) >= 3 else vols[-1]
-    vol_prev   = sum(vols[-6:-3]) / 3 if len(vols) >= 6 else vol_recent
-    vol_ratio  = vol_recent / vol_prev if vol_prev > 0 else 1
-
-    # Support / Resistance (recent swing lows/highs)
-    support    = min(lows[-6:])
-    resistance = max(highs[-6:])
-    current    = closes[-1]
-
-    return {
-        "rsi": round(rsi, 1),
-        "ema9": round(ema9, 6),
-        "ema21": round(ema21, 6),
-        "volume_ratio": round(vol_ratio, 2),
-        "support": round(support, 6),
-        "resistance": round(resistance, 6),
-        "current": round(current, 6),
-        "change_2h": round(((closes[-1] - closes[-3]) / closes[-3]) * 100, 2) if len(closes) >= 3 else 0,
-        "change_5h": round(((closes[-1] - closes[-6]) / closes[-6]) * 100, 2) if len(closes) >= 6 else 0,
-    }
+        return {
+            "rsi":          rsi,
+            "ema9":         ema9,
+            "ema21":        ema21,
+            "volume_ratio": vol_ratio,
+            "support":      round(min(lows[-6:]),  6),
+            "resistance":   round(max(highs[-6:]), 6),
+            "current":      round(closes[-1],      6),
+            "change_2h":    round(((closes[-1] - closes[-3]) / closes[-3]) * 100, 2) if len(closes) >= 3 else 0,
+            "change_5h":    round(((closes[-1] - closes[-6]) / closes[-6]) * 100, 2) if len(closes) >= 6 else 0,
+        }
+    except Exception as e:
+        print(f"[market] Indicator error: {e}")
+        return {}
 
 
 def get_market_snapshot():
-    """Get full market snapshot: top coins + their indicators."""
     print("[market] Fetching top spot pairs...")
     spot = get_top_volume_spot(5)
+    print(f"[market] Got {len(spot)} spot pairs")
 
     print("[market] Fetching top futures pairs...")
     futures = get_top_volume_futures(5)
+    print(f"[market] Got {len(futures)} futures pairs")
 
-    # Combine and deduplicate
-    seen = set()
-    all_coins = []
+    # Combine, deduplicate by symbol
+    seen, all_coins = set(), []
     for coin in spot + futures:
         if coin["symbol"] not in seen:
             seen.add(coin["symbol"])
             all_coins.append(coin)
 
-    # Get indicators for each
     print(f"[market] Getting indicators for {len(all_coins)} coins...")
     for coin in all_coins:
-        candles_1h = get_klines(coin["symbol"], "1h", 24, coin["market"])
-        candles_15m = get_klines(coin["symbol"], "15m", 24, coin["market"])
-        coin["indicators_1h"]  = calculate_indicators(candles_1h)
-        coin["indicators_15m"] = calculate_indicators(candles_15m)
+        coin["indicators_1h"]  = calculate_indicators(
+            get_klines(coin["symbol"], "1h",  24, coin["market"]))
+        coin["indicators_15m"] = calculate_indicators(
+            get_klines(coin["symbol"], "15m", 24, coin["market"]))
 
     return all_coins
