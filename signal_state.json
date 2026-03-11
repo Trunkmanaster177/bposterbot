@@ -1,40 +1,40 @@
 {
   "posted": {
-    "BTCUSDT": 1773157307.1146786,
-    "ETHUSDT": 1773157343.7174287,
+    "BTCUSDT": 1773237642.3446436,
+    "ETHUSDT": 1773237681.6911726,
     "TRXUSDT": 1773201757.31897,
     "DOGEUSDT": 1773232723.1128328,
-    "XRPUSDT": 1773157456.1731756,
+    "XRPUSDT": 1773237722.0974007,
     "SOLUSDT": 1773157491.41692,
     "PEPEUSDT": 1773228428.1284797
   },
   "active": {
     "BTCUSDT": {
       "signal": "BUY",
-      "entry": 71058.3800293458,
-      "tp1": 71500,
-      "tp2": 71900,
-      "tp3": 72300,
-      "sl": 69296.4,
+      "entry": 70195.0464340995,
+      "tp1": 70800,
+      "tp2": 71400,
+      "tp3": 72000,
+      "sl": 68986.08,
       "tp1_hit": false,
       "tp2_hit": false,
       "tp3_hit": false,
       "sl_hit": false,
-      "posted_at": 1773157307.114682,
+      "posted_at": 1773237642.3446465,
       "market": "SPOT"
     },
     "ETHUSDT": {
       "signal": "BUY",
-      "entry": 2065.51,
-      "tp1": 2090.0,
-      "tp2": 2115.0,
-      "tp3": 2140.0,
-      "sl": 2008.78,
+      "entry": 2050.85391945778,
+      "tp1": 2065.0,
+      "tp2": 2080.0,
+      "tp3": 2095.0,
+      "sl": 2009.78,
       "tp1_hit": false,
       "tp2_hit": false,
       "tp3_hit": false,
       "sl_hit": false,
-      "posted_at": 1773157343.7174308,
+      "posted_at": 1773237681.691176,
       "market": "SPOT"
     },
     "TRXUSDT": {
@@ -91,6 +91,20 @@
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773232723.112835,
+      "market": "SPOT"
+    },
+    "XRPUSDT": {
+      "signal": "BUY",
+      "entry": 1.39257321714349,
+      "tp1": 1.413,
+      "tp2": 1.428,
+      "tp3": 1.443,
+      "sl": 1.371,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773237722.0974033,
       "market": "SPOT"
     }
   }
