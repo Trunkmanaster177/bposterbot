@@ -2,7 +2,7 @@
   "posted": {
     "BTCUSDT": 1773237642.3446436,
     "ETHUSDT": 1773237681.6911726,
-    "TRXUSDT": 1773201757.31897,
+    "TRXUSDT": 1773247301.8450644,
     "DOGEUSDT": 1773232723.1128328,
     "XRPUSDT": 1773237722.0974007,
     "SOLUSDT": 1773240716.4800844,
@@ -40,16 +40,16 @@
     },
     "TRXUSDT": {
       "signal": "BUY",
-      "entry": 0.2867,
-      "tp1": 0.2915,
-      "tp2": 0.2963,
-      "tp3": 0.3011,
-      "sl": 0.2836,
+      "entry": 0.2905,
+      "tp1": 0.2945,
+      "tp2": 0.2985,
+      "tp3": 0.3025,
+      "sl": 0.2875,
       "tp1_hit": false,
       "tp2_hit": false,
       "tp3_hit": false,
       "sl_hit": false,
-      "posted_at": 1773201757.3189733,
+      "posted_at": 1773247301.8450677,
       "market": "SPOT"
     },
     "SOLUSDT": {
