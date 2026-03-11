@@ -56,7 +56,7 @@ def main():
             continue
 
         # ── 12h dedup check ──────────────────────────────────────────────
-        if not can_post_coin(symbol, interval_hours=12):
+        if not can_post_coin(symbol, coin.get("market", "SPOT"), interval_hours=12):
             continue
 
         # Get AI signal
