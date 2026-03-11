@@ -56,8 +56,11 @@ TYPE_HASHTAGS = {
 
 def get_todays_topic() -> dict:
     """Pick today's topic based on day of year so it rotates daily."""
-    day = datetime.utcnow().timetuple().tm_yday
-    return TOPIC_ROTATION[day % len(TOPIC_ROTATION)]
+    now   = datetime.utcnow()
+    # Unique index per post slot: day * 3 + slot (0=9AM, 1=2PM, 2=7PM)
+    slot  = {9: 0, 14: 1, 19: 2}.get(now.hour, now.hour // 5)
+    index = (now.timetuple().tm_yday * 3 + slot) % len(TOPIC_ROTATION)
+    return TOPIC_ROTATION[index]
 
 
 def generate_educational_post(topic_data: dict) -> str:
