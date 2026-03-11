@@ -6,7 +6,7 @@
     "DOGEUSDT": 1773157418.7246716,
     "XRPUSDT": 1773157456.1731756,
     "SOLUSDT": 1773157491.41692,
-    "PEPEUSDT": 1773157527.9617422
+    "PEPEUSDT": 1773228428.1284797
   },
   "active": {
     "BTCUSDT": {
@@ -63,6 +63,20 @@
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773157491.4169226,
+      "market": "SPOT"
+    },
+    "PEPEUSDT": {
+      "signal": "BUY",
+      "entry": 3.28751521875268e-06,
+      "tp1": 3.35e-06,
+      "tp2": 3.42e-06,
+      "tp3": 3.5e-06,
+      "sl": 3.1e-06,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773228428.1284828,
       "market": "SPOT"
     }
   }
