@@ -5,7 +5,8 @@
     "PYTHUSDT_SPOT": 1773275351.0506928,
     "API3USDT_SPOT": 1773275392.8052788,
     "FLOKIUSDT_SPOT": 1773275434.1432817,
-    "EIGENUSDT_SPOT": 1773275475.3185313
+    "EIGENUSDT_SPOT": 1773275475.3185313,
+    "BANDUSDT_SPOT": 1773277690.0535932
   },
   "active": {
     "TRXUSDT_SPOT": {
@@ -103,6 +104,22 @@
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773275475.3185356
+    },
+    "BANDUSDT_SPOT": {
+      "symbol": "BANDUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 0.239,
+      "tp1": 0.244,
+      "tp2": 0.249,
+      "tp3": 0.254,
+      "sl": 0.236,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773277690.0535977
     }
   }
 }
