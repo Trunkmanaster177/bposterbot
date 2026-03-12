@@ -18,7 +18,11 @@
     "ETHUSDT_FUTURES": 1773308265.9946575,
     "SOLUSDT_FUTURES": 1773311650.845483,
     "FETUSDT_SPOT": 1773311691.180086,
-    "GRTUSDT_SPOT": 1773326806.4867218
+    "GRTUSDT_SPOT": 1773326806.4867218,
+    "XRPUSDT_SPOT": 1773337444.1081486,
+    "XRPUSDT_FUTURES": 1773337485.4719603,
+    "TURBOUSDT_SPOT": 1773337527.0544646,
+    "ORDIUSDT_SPOT": 1773337568.5934083
   },
   "active": {
     "API3USDT_SPOT": {
@@ -260,6 +264,70 @@
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773334390.6798785
+    },
+    "XRPUSDT_SPOT": {
+      "symbol": "XRPUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 1.38158432703989,
+      "tp1": 1.393,
+      "tp2": 1.405,
+      "tp3": 1.418,
+      "sl": 1.365,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773337444.1081524
+    },
+    "XRPUSDT_FUTURES": {
+      "symbol": "XRPUSDT",
+      "market": "FUTURES",
+      "signal": "BUY",
+      "entry": 1.38177187643894,
+      "tp1": 1.413,
+      "tp2": 1.435,
+      "tp3": 1.457,
+      "sl": 1.355,
+      "leverage": 3,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773337485.4719646
+    },
+    "TURBOUSDT_SPOT": {
+      "symbol": "TURBOUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 0.00115767333601381,
+      "tp1": 0.001183,
+      "tp2": 0.00121,
+      "tp3": 0.001238,
+      "sl": 0.000928,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773337527.0544696
+    },
+    "ORDIUSDT_SPOT": {
+      "symbol": "ORDIUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 2.531832435732443,
+      "tp1": 2.568,
+      "tp2": 2.603,
+      "tp3": 2.638,
+      "sl": 2.442,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773337568.5934124
     }
   }
 }
