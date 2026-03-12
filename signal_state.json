@@ -1,7 +1,11 @@
 {
   "posted": {
     "TRXUSDT_SPOT": 1773274115.9413984,
-    "TRXUSDT_FUTURES": 1773274154.0063899
+    "TRXUSDT_FUTURES": 1773274154.0063899,
+    "PYTHUSDT_SPOT": 1773275351.0506928,
+    "API3USDT_SPOT": 1773275392.8052788,
+    "FLOKIUSDT_SPOT": 1773275434.1432817,
+    "EIGENUSDT_SPOT": 1773275475.3185313
   },
   "active": {
     "TRXUSDT_SPOT": {
@@ -35,6 +39,70 @@
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773274154.0063932
+    },
+    "PYTHUSDT_SPOT": {
+      "symbol": "PYTHUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 0.04698003777508025,
+      "tp1": 0.04717,
+      "tp2": 0.04735,
+      "tp3": 0.04752,
+      "sl": 0.04669,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773275351.0506968
+    },
+    "API3USDT_SPOT": {
+      "symbol": "API3USDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 0.3236,
+      "tp1": 0.3285,
+      "tp2": 0.3327,
+      "tp3": 0.3368,
+      "sl": 0.288,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773275392.805283
+    },
+    "FLOKIUSDT_SPOT": {
+      "symbol": "FLOKIUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 2.937701155779966e-05,
+      "tp1": 3.000000000000001e-05,
+      "tp2": 3.030000000000001e-05,
+      "tp3": 3.060000000000001e-05,
+      "sl": 2.860367509460269e-05,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773275434.1432858
+    },
+    "EIGENUSDT_SPOT": {
+      "symbol": "EIGENUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 0.1875701577293064,
+      "tp1": 0.1905,
+      "tp2": 0.1935,
+      "tp3": 0.1965,
+      "sl": 0.184,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773275475.3185356
     }
   }
 }
