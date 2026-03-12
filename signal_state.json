@@ -15,7 +15,9 @@
     "BTCUSDT_FUTURES": 1773304550.626297,
     "DOGEUSDT_FUTURES": 1773304593.0887864,
     "SOLUSDT_SPOT": 1773308225.3663588,
-    "ETHUSDT_FUTURES": 1773308265.9946575
+    "ETHUSDT_FUTURES": 1773308265.9946575,
+    "SOLUSDT_FUTURES": 1773311650.845483,
+    "FETUSDT_SPOT": 1773311691.180086
   },
   "active": {
     "TRXUSDT_SPOT": {
@@ -124,7 +126,7 @@
       "tp3": 1.62,
       "sl": 1.48,
       "leverage": null,
-      "tp1_hit": false,
+      "tp1_hit": true,
       "tp2_hit": false,
       "tp3_hit": false,
       "sl_hit": false,
@@ -156,7 +158,7 @@
       "tp3": 70900.0,
       "sl": 69210.99,
       "leverage": null,
-      "tp1_hit": false,
+      "tp1_hit": true,
       "tp2_hit": false,
       "tp3_hit": false,
       "sl_hit": false,
@@ -172,7 +174,7 @@
       "tp3": 2090.0,
       "sl": 2018.22,
       "leverage": null,
-      "tp1_hit": false,
+      "tp1_hit": true,
       "tp2_hit": false,
       "tp3_hit": false,
       "sl_hit": false,
@@ -236,7 +238,7 @@
       "tp3": 87.5,
       "sl": 84.9,
       "leverage": null,
-      "tp1_hit": false,
+      "tp1_hit": true,
       "tp2_hit": false,
       "tp3_hit": false,
       "sl_hit": false,
@@ -252,11 +254,43 @@
       "tp3": 2100.0,
       "sl": 2019.53,
       "leverage": 3,
-      "tp1_hit": false,
+      "tp1_hit": true,
       "tp2_hit": false,
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773308265.994661
+    },
+    "SOLUSDT_FUTURES": {
+      "symbol": "SOLUSDT",
+      "market": "FUTURES",
+      "signal": "BUY",
+      "entry": 86.5,
+      "tp1": 88.0,
+      "tp2": 90.0,
+      "tp3": 92.0,
+      "sl": 84.5,
+      "leverage": 3,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773311650.845487
+    },
+    "FETUSDT_SPOT": {
+      "symbol": "FETUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 0.1605,
+      "tp1": 0.1625,
+      "tp2": 0.1645,
+      "tp3": 0.1665,
+      "sl": 0.1564,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773311691.1800904
     }
   }
 }
