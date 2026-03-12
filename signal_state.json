@@ -22,7 +22,9 @@
     "XRPUSDT_SPOT": 1773337444.1081486,
     "XRPUSDT_FUTURES": 1773337485.4719603,
     "TURBOUSDT_SPOT": 1773337527.0544646,
-    "ORDIUSDT_SPOT": 1773337568.5934083
+    "ORDIUSDT_SPOT": 1773337568.5934083,
+    "MEMEUSDT_SPOT": 1773344522.4940999,
+    "NEIROUSDT_SPOT": 1773344564.592924
   },
   "active": {
     "API3USDT_SPOT": {
@@ -51,27 +53,11 @@
       "tp3": 3.1e-05,
       "sl": 2.884975373061365e-05,
       "leverage": null,
-      "tp1_hit": false,
+      "tp1_hit": true,
       "tp2_hit": false,
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773319300.8637667
-    },
-    "BANDUSDT_SPOT": {
-      "symbol": "BANDUSDT",
-      "market": "SPOT",
-      "signal": "BUY",
-      "entry": 0.239,
-      "tp1": 0.244,
-      "tp2": 0.249,
-      "tp3": 0.254,
-      "sl": 0.236,
-      "leverage": null,
-      "tp1_hit": true,
-      "tp2_hit": true,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773277690.0535977
     },
     "BTCUSDT_SPOT": {
       "symbol": "BTCUSDT",
@@ -195,8 +181,8 @@
       "tp3": 0.1665,
       "sl": 0.1564,
       "leverage": null,
-      "tp1_hit": false,
-      "tp2_hit": false,
+      "tp1_hit": true,
+      "tp2_hit": true,
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773311691.1800904
@@ -216,22 +202,6 @@
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773319217.9930375
-    },
-    "GRTUSDT_SPOT": {
-      "symbol": "GRTUSDT",
-      "market": "SPOT",
-      "signal": "BUY",
-      "entry": 0.02588,
-      "tp1": 0.0263,
-      "tp2": 0.0267,
-      "tp3": 0.0271,
-      "sl": 0.02529,
-      "leverage": null,
-      "tp1_hit": true,
-      "tp2_hit": false,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773326806.486726
     },
     "TRXUSDT_FUTURES": {
       "symbol": "TRXUSDT",
@@ -259,7 +229,7 @@
       "tp3": 0.04782,
       "sl": 0.04593,
       "leverage": null,
-      "tp1_hit": false,
+      "tp1_hit": true,
       "tp2_hit": false,
       "tp3_hit": false,
       "sl_hit": false,
@@ -308,7 +278,7 @@
       "sl": 0.000928,
       "leverage": null,
       "tp1_hit": true,
-      "tp2_hit": false,
+      "tp2_hit": true,
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773337527.0544696
@@ -328,6 +298,38 @@
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773337568.5934124
+    },
+    "MEMEUSDT_SPOT": {
+      "symbol": "MEMEUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 0.0006247233928364406,
+      "tp1": 0.000638,
+      "tp2": 0.000652,
+      "tp3": 0.000665,
+      "sl": 0.00057,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773344522.4941049
+    },
+    "NEIROUSDT_SPOT": {
+      "symbol": "NEIROUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 6.998297205272555e-05,
+      "tp1": 7.05e-05,
+      "tp2": 7.1e-05,
+      "tp3": 7.15e-05,
+      "sl": 6.6e-05,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773344564.592931
     }
   }
 }
