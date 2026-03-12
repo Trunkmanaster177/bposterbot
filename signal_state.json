@@ -8,7 +8,12 @@
     "EIGENUSDT_SPOT": 1773275475.3185313,
     "BANDUSDT_SPOT": 1773277690.0535932,
     "RENDERUSDT_SPOT": 1773301295.7326183,
-    "JUPUSDT_SPOT": 1773301338.4790776
+    "JUPUSDT_SPOT": 1773301338.4790776,
+    "BTCUSDT_SPOT": 1773304425.8759506,
+    "ETHUSDT_SPOT": 1773304466.6061947,
+    "DOGEUSDT_SPOT": 1773304508.9879298,
+    "BTCUSDT_FUTURES": 1773304550.626297,
+    "DOGEUSDT_FUTURES": 1773304593.0887864
   },
   "active": {
     "TRXUSDT_SPOT": {
@@ -138,6 +143,86 @@
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773301338.4790819
+    },
+    "BTCUSDT_SPOT": {
+      "symbol": "BTCUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 69849.1383031481,
+      "tp1": 70200.0,
+      "tp2": 70550.0,
+      "tp3": 70900.0,
+      "sl": 69210.99,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773304425.8759549
+    },
+    "ETHUSDT_SPOT": {
+      "symbol": "ETHUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 2045.82946566868,
+      "tp1": 2060.0,
+      "tp2": 2075.0,
+      "tp3": 2090.0,
+      "sl": 2018.22,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773304466.6061993
+    },
+    "DOGEUSDT_SPOT": {
+      "symbol": "DOGEUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 0.0929829023215135,
+      "tp1": 0.0938,
+      "tp2": 0.0945,
+      "tp3": 0.0952,
+      "sl": 0.0915,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773304508.987934
+    },
+    "BTCUSDT_FUTURES": {
+      "symbol": "BTCUSDT",
+      "market": "FUTURES",
+      "signal": "BUY",
+      "entry": 69867.6847515066,
+      "tp1": 70600.0,
+      "tp2": 71200.0,
+      "tp3": 71800.0,
+      "sl": 69210.99,
+      "leverage": 3,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773304550.6263015
+    },
+    "DOGEUSDT_FUTURES": {
+      "symbol": "DOGEUSDT",
+      "market": "FUTURES",
+      "signal": "BUY",
+      "entry": 0.0929929961408627,
+      "tp1": 0.0945,
+      "tp2": 0.0962,
+      "tp3": 0.098,
+      "sl": 0.0915,
+      "leverage": 3,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773304593.0887904
     }
   }
 }
