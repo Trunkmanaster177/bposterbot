@@ -29,7 +29,7 @@ def main():
             content = format_sl_hit(hit)
 
         print(f"\n[main] Posting {hit['type']} hit for {hit['symbol']}:\n{content}\n")
-        post_to_square(content, images=[])
+        post_to_square(content, images=[])  # No chart needed for TP/SL updates
 
     # ── Step 2: Scan market for new signals ────────────────────────────────
     print("\n[main] Scanning market for high volume coins...")
@@ -71,7 +71,15 @@ def main():
         content = format_signal_post(signal)
         print(f"\n[main] Signal:\n{content}\n")
 
-        success = post_to_square(content, images=[])
+        # ── Generate chart image ─────────────────────────────────────────
+        chart_path = generate_signal_chart(coin, signal)
+        images = [chart_path] if chart_path else []
+        if chart_path:
+            print(f"[main] 📊 Chart ready: {chart_path}")
+        else:
+            print(f"[main] ⚠️  No chart generated — posting text only")
+
+        success = post_to_square(content, images=images)
         if success:
             print(f"[main] ✅ Posted signal for {symbol}!")
             record_posted_signal(signal)
