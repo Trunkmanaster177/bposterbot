@@ -20,38 +20,6 @@
     "FETUSDT_SPOT": 1773311691.180086
   },
   "active": {
-    "TRXUSDT_SPOT": {
-      "symbol": "TRXUSDT",
-      "market": "SPOT",
-      "signal": "BUY",
-      "entry": 0.2918,
-      "tp1": 0.2955,
-      "tp2": 0.2992,
-      "tp3": 0.3029,
-      "sl": 0.2895,
-      "leverage": null,
-      "tp1_hit": false,
-      "tp2_hit": false,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773274115.9414022
-    },
-    "TRXUSDT_FUTURES": {
-      "symbol": "TRXUSDT",
-      "market": "FUTURES",
-      "signal": "BUY",
-      "entry": 0.2918,
-      "tp1": 0.2955,
-      "tp2": 0.299,
-      "tp3": 0.3025,
-      "sl": 0.2895,
-      "leverage": 3,
-      "tp1_hit": false,
-      "tp2_hit": false,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773274154.0063932
-    },
     "API3USDT_SPOT": {
       "symbol": "API3USDT",
       "market": "SPOT",
@@ -127,7 +95,7 @@
       "sl": 1.48,
       "leverage": null,
       "tp1_hit": true,
-      "tp2_hit": false,
+      "tp2_hit": true,
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773301295.7326229
@@ -190,7 +158,7 @@
       "tp3": 0.0952,
       "sl": 0.0915,
       "leverage": null,
-      "tp1_hit": false,
+      "tp1_hit": true,
       "tp2_hit": false,
       "tp3_hit": false,
       "sl_hit": false,
