@@ -267,22 +267,6 @@
       "sl_hit": false,
       "posted_at": 1773337485.4719646
     },
-    "TURBOUSDT_SPOT": {
-      "symbol": "TURBOUSDT",
-      "market": "SPOT",
-      "signal": "BUY",
-      "entry": 0.00115767333601381,
-      "tp1": 0.001183,
-      "tp2": 0.00121,
-      "tp3": 0.001238,
-      "sl": 0.000928,
-      "leverage": null,
-      "tp1_hit": true,
-      "tp2_hit": true,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773337527.0544696
-    },
     "ORDIUSDT_SPOT": {
       "symbol": "ORDIUSDT",
       "market": "SPOT",
