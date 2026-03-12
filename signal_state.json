@@ -41,22 +41,6 @@
       "sl_hit": false,
       "posted_at": 1773274154.0063932
     },
-    "PYTHUSDT_SPOT": {
-      "symbol": "PYTHUSDT",
-      "market": "SPOT",
-      "signal": "BUY",
-      "entry": 0.04698003777508025,
-      "tp1": 0.04717,
-      "tp2": 0.04735,
-      "tp3": 0.04752,
-      "sl": 0.04669,
-      "leverage": null,
-      "tp1_hit": false,
-      "tp2_hit": false,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773275351.0506968
-    },
     "API3USDT_SPOT": {
       "symbol": "API3USDT",
       "market": "SPOT",
