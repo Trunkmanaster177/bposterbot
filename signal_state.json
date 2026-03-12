@@ -2,7 +2,7 @@
   "posted": {
     "TRXUSDT_SPOT": 1773319217.993034,
     "TRXUSDT_FUTURES": 1773330675.9301019,
-    "PYTHUSDT_SPOT": 1773275351.0506928,
+    "PYTHUSDT_SPOT": 1773334390.679875,
     "API3USDT_SPOT": 1773319259.6213882,
     "FLOKIUSDT_SPOT": 1773319300.8637626,
     "EIGENUSDT_SPOT": 1773319342.1290386,
@@ -68,22 +68,6 @@
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773277690.0535977
-    },
-    "RENDERUSDT_SPOT": {
-      "symbol": "RENDERUSDT",
-      "market": "SPOT",
-      "signal": "BUY",
-      "entry": 1.552,
-      "tp1": 1.58,
-      "tp2": 1.6,
-      "tp3": 1.62,
-      "sl": 1.48,
-      "leverage": null,
-      "tp1_hit": true,
-      "tp2_hit": true,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773301295.7326229
     },
     "BTCUSDT_SPOT": {
       "symbol": "BTCUSDT",
@@ -260,6 +244,22 @@
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773330675.9301064
+    },
+    "PYTHUSDT_SPOT": {
+      "symbol": "PYTHUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 0.04670925023122881,
+      "tp1": 0.04708,
+      "tp2": 0.04745,
+      "tp3": 0.04782,
+      "sl": 0.04593,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773334390.6798785
     }
   }
 }
