@@ -13,7 +13,9 @@
     "ETHUSDT_SPOT": 1773304466.6061947,
     "DOGEUSDT_SPOT": 1773304508.9879298,
     "BTCUSDT_FUTURES": 1773304550.626297,
-    "DOGEUSDT_FUTURES": 1773304593.0887864
+    "DOGEUSDT_FUTURES": 1773304593.0887864,
+    "SOLUSDT_SPOT": 1773308225.3663588,
+    "ETHUSDT_FUTURES": 1773308265.9946575
   },
   "active": {
     "TRXUSDT_SPOT": {
@@ -106,8 +108,8 @@
       "tp3": 0.254,
       "sl": 0.236,
       "leverage": null,
-      "tp1_hit": false,
-      "tp2_hit": false,
+      "tp1_hit": true,
+      "tp2_hit": true,
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773277690.0535977
@@ -223,6 +225,38 @@
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773304593.0887904
+    },
+    "SOLUSDT_SPOT": {
+      "symbol": "SOLUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 85.6656131157636,
+      "tp1": 86.15,
+      "tp2": 86.8,
+      "tp3": 87.5,
+      "sl": 84.9,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773308225.3663626
+    },
+    "ETHUSDT_FUTURES": {
+      "symbol": "ETHUSDT",
+      "market": "FUTURES",
+      "signal": "BUY",
+      "entry": 2040.71229657128,
+      "tp1": 2060.0,
+      "tp2": 2080.0,
+      "tp3": 2100.0,
+      "sl": 2019.53,
+      "leverage": 3,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773308265.994661
     }
   }
 }
