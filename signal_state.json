@@ -15,9 +15,9 @@
     "BTCUSDT_FUTURES": 1773304550.626297,
     "DOGEUSDT_FUTURES": 1773354030.487915,
     "SOLUSDT_SPOT": 1773308225.3663588,
-    "ETHUSDT_FUTURES": 1773308265.9946575,
+    "ETHUSDT_FUTURES": 1773357779.6052027,
     "SOLUSDT_FUTURES": 1773311650.845483,
-    "FETUSDT_SPOT": 1773311691.180086,
+    "FETUSDT_SPOT": 1773357821.322763,
     "GRTUSDT_SPOT": 1773326806.4867218,
     "XRPUSDT_SPOT": 1773337444.1081486,
     "XRPUSDT_FUTURES": 1773337485.4719603,
@@ -70,7 +70,7 @@
       "sl": 69210.99,
       "leverage": null,
       "tp1_hit": true,
-      "tp2_hit": false,
+      "tp2_hit": true,
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773304425.8759549
@@ -86,7 +86,7 @@
       "sl": 2018.22,
       "leverage": null,
       "tp1_hit": true,
-      "tp2_hit": false,
+      "tp2_hit": true,
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773304466.6061993
@@ -143,17 +143,17 @@
       "symbol": "ETHUSDT",
       "market": "FUTURES",
       "signal": "BUY",
-      "entry": 2040.71229657128,
-      "tp1": 2060.0,
-      "tp2": 2080.0,
-      "tp3": 2100.0,
-      "sl": 2019.53,
+      "entry": 2090.73801628733,
+      "tp1": 2120.0,
+      "tp2": 2150.0,
+      "tp3": 2180.0,
+      "sl": 2045.42,
       "leverage": 3,
-      "tp1_hit": true,
+      "tp1_hit": false,
       "tp2_hit": false,
       "tp3_hit": false,
       "sl_hit": false,
-      "posted_at": 1773308265.994661
+      "posted_at": 1773357779.6052072
     },
     "SOLUSDT_FUTURES": {
       "symbol": "SOLUSDT",
@@ -214,7 +214,7 @@
       "sl": 0.04593,
       "leverage": null,
       "tp1_hit": true,
-      "tp2_hit": false,
+      "tp2_hit": true,
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773334390.6798785
@@ -314,6 +314,22 @@
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773353989.0965197
+    },
+    "FETUSDT_SPOT": {
+      "symbol": "FETUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 0.174438,
+      "tp1": 0.1775,
+      "tp2": 0.1807,
+      "tp3": 0.1839,
+      "sl": 0.1611,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773357821.3227673
     }
   }
 }
