@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from market_data import get_market_snapshot
 from ai_analyst import analyse_and_generate_signal, format_signal_post
+from chart_generator import generate_signal_chart
 from signal_tracker import (can_post_coin, record_posted_signal,
                              check_tp_sl_hits, format_tp_hit, format_sl_hit)
 from poster import post_to_square
