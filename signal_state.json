@@ -1,1 +1,40 @@
-
+{
+  "posted": {
+    "TRXUSDT_SPOT": 1773274115.9413984,
+    "TRXUSDT_FUTURES": 1773274154.0063899
+  },
+  "active": {
+    "TRXUSDT_SPOT": {
+      "symbol": "TRXUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 0.2918,
+      "tp1": 0.2955,
+      "tp2": 0.2992,
+      "tp3": 0.3029,
+      "sl": 0.2895,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773274115.9414022
+    },
+    "TRXUSDT_FUTURES": {
+      "symbol": "TRXUSDT",
+      "market": "FUTURES",
+      "signal": "BUY",
+      "entry": 0.2918,
+      "tp1": 0.2955,
+      "tp2": 0.299,
+      "tp3": 0.3025,
+      "sl": 0.2895,
+      "leverage": 3,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773274154.0063932
+    }
+  }
+}
