@@ -7,7 +7,7 @@
     "FLOKIUSDT_SPOT": 1773319300.8637626,
     "EIGENUSDT_SPOT": 1773319342.1290386,
     "BANDUSDT_SPOT": 1773277690.0535932,
-    "RENDERUSDT_SPOT": 1773301295.7326183,
+    "RENDERUSDT_SPOT": 1773350819.8564346,
     "JUPUSDT_SPOT": 1773301338.4790776,
     "BTCUSDT_SPOT": 1773304425.8759506,
     "ETHUSDT_SPOT": 1773304466.6061947,
@@ -171,22 +171,6 @@
       "sl_hit": false,
       "posted_at": 1773311650.845487
     },
-    "FETUSDT_SPOT": {
-      "symbol": "FETUSDT",
-      "market": "SPOT",
-      "signal": "BUY",
-      "entry": 0.1605,
-      "tp1": 0.1625,
-      "tp2": 0.1645,
-      "tp3": 0.1665,
-      "sl": 0.1564,
-      "leverage": null,
-      "tp1_hit": true,
-      "tp2_hit": true,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773311691.1800904
-    },
     "TRXUSDT_SPOT": {
       "symbol": "TRXUSDT",
       "market": "SPOT",
@@ -309,11 +293,27 @@
       "tp3": 7.15e-05,
       "sl": 6.6e-05,
       "leverage": null,
-      "tp1_hit": false,
+      "tp1_hit": true,
       "tp2_hit": false,
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773344564.592931
+    },
+    "RENDERUSDT_SPOT": {
+      "symbol": "RENDERUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 1.63224276089618,
+      "tp1": 1.66,
+      "tp2": 1.685,
+      "tp3": 1.71,
+      "sl": 1.595,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773350819.8564389
     }
   }
 }
