@@ -1,8 +1,8 @@
 {
   "posted": {
     "TRXUSDT_SPOT": 1773365070.2311022,
-    "TRXUSDT_FUTURES": 1773330675.9301019,
-    "PYTHUSDT_SPOT": 1773334390.679875,
+    "TRXUSDT_FUTURES": 1773380638.2573862,
+    "PYTHUSDT_SPOT": 1773380678.7992485,
     "API3USDT_SPOT": 1773319259.6213882,
     "FLOKIUSDT_SPOT": 1773319300.8637626,
     "EIGENUSDT_SPOT": 1773319342.1290386,
@@ -143,33 +143,17 @@
       "symbol": "TRXUSDT",
       "market": "FUTURES",
       "signal": "BUY",
-      "entry": 0.2895,
+      "entry": 0.2898774630256816,
       "tp1": 0.2935,
-      "tp2": 0.2975,
-      "tp3": 0.3015,
-      "sl": 0.2875,
+      "tp2": 0.2965,
+      "tp3": 0.2995,
+      "sl": 0.2885,
       "leverage": 3,
       "tp1_hit": false,
       "tp2_hit": false,
       "tp3_hit": false,
       "sl_hit": false,
-      "posted_at": 1773330675.9301064
-    },
-    "XRPUSDT_SPOT": {
-      "symbol": "XRPUSDT",
-      "market": "SPOT",
-      "signal": "BUY",
-      "entry": 1.38158432703989,
-      "tp1": 1.393,
-      "tp2": 1.405,
-      "tp3": 1.418,
-      "sl": 1.365,
-      "leverage": null,
-      "tp1_hit": true,
-      "tp2_hit": true,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773337444.1081524
+      "posted_at": 1773380638.2573898
     },
     "XRPUSDT_FUTURES": {
       "symbol": "XRPUSDT",
@@ -282,6 +266,22 @@
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773365110.6662786
+    },
+    "PYTHUSDT_SPOT": {
+      "symbol": "PYTHUSDT",
+      "market": "SPOT",
+      "signal": "BUY",
+      "entry": 0.04888676972593149,
+      "tp1": 0.0495,
+      "tp2": 0.0501,
+      "tp3": 0.0507,
+      "sl": 0.0472,
+      "leverage": null,
+      "tp1_hit": false,
+      "tp2_hit": false,
+      "tp3_hit": false,
+      "sl_hit": false,
+      "posted_at": 1773380678.7992532
     }
   }
 }
