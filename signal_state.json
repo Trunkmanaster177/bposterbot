@@ -73,22 +73,6 @@
       "sl_hit": false,
       "posted_at": 1773384277.8107295
     },
-    "NEIROUSDT_SPOT": {
-      "symbol": "NEIROUSDT",
-      "market": "SPOT",
-      "signal": "BUY",
-      "entry": 7.336631039506503e-05,
-      "tp1": 7.45e-05,
-      "tp2": 7.55e-05,
-      "tp3": 7.65e-05,
-      "sl": 7.2e-05,
-      "leverage": null,
-      "tp1_hit": false,
-      "tp2_hit": false,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773384393.4330988
-    },
     "MEMEUSDT_SPOT": {
       "symbol": "MEMEUSDT",
       "market": "SPOT",
