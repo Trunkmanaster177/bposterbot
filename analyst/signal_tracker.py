@@ -73,15 +73,34 @@ def record_posted_signal(signal: dict):
 
 
 def get_current_price(coin: str) -> float:
+    """Get price with validation — tries multiple sources."""
+    # Try CryptoCompare first
     try:
         resp = requests.get(
             f"{CC_API}/price",
             params={"fsym": coin, "tsyms": "USD"},
             headers=HEADERS, timeout=10
         )
-        return float(resp.json().get("USD", 0))
+        data = resp.json()
+        price = float(data.get("USD", 0))
+        if price > 0:
+            return price
     except Exception:
-        return 0
+        pass
+
+    # Fallback: Binance public price API (no geo restriction for price endpoint)
+    try:
+        resp = requests.get(
+            f"https://api.binance.com/api/v3/ticker/price",
+            params={"symbol": coin + "USDT"},
+            headers=HEADERS, timeout=10
+        )
+        if resp.status_code == 200:
+            return float(resp.json().get("price", 0))
+    except Exception:
+        pass
+
+    return 0
 
 
 def calc_roi(entry: float, target: float, direction: str, leverage) -> str:
@@ -119,6 +138,12 @@ def check_tp_sl_hits() -> list:
         price = get_current_price(coin)
         if not price:
             print(f"[tracker] Could not get price for {symbol}")
+            continue
+
+        # Sanity check: price should be within 50% of entry
+        # If not, we probably got wrong coin price
+        if entry > 0 and (price > entry * 3 or price < entry * 0.1):
+            print(f"[tracker] ⚠️ Price sanity fail for {symbol}: price={price}, entry={entry} — skipping")
             continue
 
         print(f"[tracker] {symbol} ({market}) | Price: {price} | Entry: {entry}")
