@@ -72,22 +72,6 @@
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773384277.8107295
-    },
-    "MEMEUSDT_SPOT": {
-      "symbol": "MEMEUSDT",
-      "market": "SPOT",
-      "signal": "BUY",
-      "entry": 0.000603,
-      "tp1": 0.000612,
-      "tp2": 0.000621,
-      "tp3": 0.00063,
-      "sl": 0.00059,
-      "leverage": null,
-      "tp1_hit": true,
-      "tp2_hit": false,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773384450.8818555
     }
   }
 }
