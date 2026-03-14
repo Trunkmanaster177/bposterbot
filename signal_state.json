@@ -9,22 +9,6 @@
     "MEMEUSDT_SPOT": 1773384450.881852
   },
   "active": {
-    "TRXUSDT_SPOT": {
-      "symbol": "TRXUSDT",
-      "market": "SPOT",
-      "signal": "BUY",
-      "entry": 0.2891,
-      "tp1": 0.2915,
-      "tp2": 0.294,
-      "tp3": 0.2965,
-      "sl": 0.2875,
-      "leverage": null,
-      "tp1_hit": true,
-      "tp2_hit": true,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773384101.629761
-    },
     "TRXUSDT_FUTURES": {
       "symbol": "TRXUSDT",
       "market": "FUTURES",
