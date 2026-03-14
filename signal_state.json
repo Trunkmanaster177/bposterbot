@@ -41,22 +41,6 @@
       "sl_hit": false,
       "posted_at": 1773384162.1639767
     },
-    "TURBOUSDT_SPOT": {
-      "symbol": "TURBOUSDT",
-      "market": "SPOT",
-      "signal": "BUY",
-      "entry": 0.00120794712949271,
-      "tp1": 0.001232,
-      "tp2": 0.001257,
-      "tp3": 0.001282,
-      "sl": 0.001095,
-      "leverage": null,
-      "tp1_hit": false,
-      "tp2_hit": false,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773384219.550216
-    },
     "RENDERUSDT_SPOT": {
       "symbol": "RENDERUSDT",
       "market": "SPOT",
