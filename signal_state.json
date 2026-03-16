@@ -36,7 +36,7 @@
       "sl": 1.701,
       "leverage": null,
       "tp1_hit": true,
-      "tp2_hit": false,
+      "tp2_hit": true,
       "tp3_hit": false,
       "sl_hit": false,
       "posted_at": 1773384277.8107295
