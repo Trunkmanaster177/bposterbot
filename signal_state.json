@@ -8,22 +8,5 @@
     "NEIROUSDT_SPOT": 1773384393.4330938,
     "MEMEUSDT_SPOT": 1773384450.881852
   },
-  "active": {
-    "RENDERUSDT_SPOT": {
-      "symbol": "RENDERUSDT",
-      "market": "SPOT",
-      "signal": "BUY",
-      "entry": 1.85413818003668,
-      "tp1": 1.892,
-      "tp2": 1.93,
-      "tp3": 1.968,
-      "sl": 1.701,
-      "leverage": null,
-      "tp1_hit": true,
-      "tp2_hit": true,
-      "tp3_hit": false,
-      "sl_hit": false,
-      "posted_at": 1773384277.8107295
-    }
-  }
+  "active": {}
 }
